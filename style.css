@@ -1,38 +1,50 @@
-body {
-    margin: 0;
-    font-family: "Nanum Gothic", sans-serif;
-    background-color: #FDFCFC;
+:root {
+  --project-gap: 30px;
+  --project-box-height: 220px;
+  --project-radius: 12px;
+  --project-shadow: 2px 2px 8px rgba(0, 0, 0, 0.07);
+  --transition-fast: 0.2s ease;
+  --font-main: "Nanum Gothic", sans-serif;
+  --color-dark: #4A4A4A;
 }
 
+body {
+  margin: 0;
+  font-family: var(--font-main);
+  background-color: #FDFCFC;
+}
+
+/* ======================== Header ======================== */
 header {
-    position: fixed;
-    text-align: center;
-    top: 0;
-    left: 0;
-    width: 100%;
-    background-color: #DCD4CC;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-    overflow-y: auto;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #DCD4CC;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  overflow-y: auto;
 }
 
 header .logo {
-    padding: 40px 0;
+  padding: 40px 0;
 }
 
 header #title {
-    font-family: "Mogra", sans-serif;
-    font-size: 3em;
-    color: #4A4A4A;
-    text-decoration: none;
+  font-family: "Mogra", sans-serif;
+  font-size: 3em;
+  color: var(--color-dark);
+  text-decoration: none;
 }
 
-
+/* ===================== Sidebar ========================= */
 .sidebar-wrap {
-    position: fixed;
-    width: 100%;
-    background-color: #FDFCFC;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  position: fixed;
+  width: 100%;
+  background-color: #FDFCFC;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
+
 .sidebar-wrap ul {
   display: flex;
   justify-content: space-between;
@@ -46,9 +58,9 @@ header #title {
 }
 
 .sidebar-wrap a {
-    font-family: "Radley", serif;
+  font-family: "Radley", serif;
   text-decoration: none;
-  color: #4A4A4A;
+  color: var(--color-dark);
   font-size: 1.2em;
   padding: 0 20px 10px;
   border-radius: 5px;
@@ -57,23 +69,20 @@ header #title {
 
 .sidebar-wrap a:hover {
   color: #C3BBB6;
-
 }
 
+/* ===================== Main ============================ */
 main {
-    margin-top: 220px;
-    padding: 20px;
-    max-width: 1100px;
-    margin-left: auto;
-    margin-right: auto;
+  margin: 220px auto 0;
+  padding: 20px;
+  max-width: 1100px;
 }
 
-/* ================ profile section style ================= */
+/* ===================== Profile Section ================= */
 .profile-section {
-    padding-bottom: 40px;
-    border-bottom: 1px solid #ddd;
+  padding-bottom: 40px;
+  border-bottom: 1px solid #ddd;
 }
-
 
 .profile-section .profile-list {
   display: flex;
@@ -85,21 +94,22 @@ main {
 }
 
 .profile-image {
-    width: 250px;
-    height: 250px;
-    border-radius: 50%;
-    overflow: hidden;
-    margin: 0 20px 20px;
-    border: 3px solid #ddd;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 20px 20px;
+  border: 3px solid #ddd;
 }
 
 .profile-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.profile-info, .profile-details {
+.profile-info,
+.profile-details {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -110,214 +120,229 @@ main {
   line-height: 1.5;
 }
 
-/* name section */
 .profile-info .name {
-    display: flex;
-    align-items: center;
-    font-size: 1.5em;
-    font-weight: bold;
+  display: flex;
+  align-items: center;
+  font-size: 1.5em;
+  font-weight: bold;
 }
 
 .profile-info .name img {
-    width: 26px;
-    height: 24px;
-    margin-left: 5px;
+  width: 26px;
+  height: 24px;
+  margin-left: 5px;
 }
 
-/* name card modal style */
+/* ============== Name Card Modal ======================== */
 .modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.6);
-    justify-content: center;
-    align-items: center;
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  justify-content: center;
+  align-items: center;
 }
 
 .modal-content {
-    position: relative;
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    max-width: 1200px;
-    width: 90%;
-    box-shadow: 0 0 10px rgba(0,0,0,0.25);
-    animation: fadeIn 0.3s ease;
+  position: relative;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 1200px;
+  width: 90%;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.3s ease;
 }
 
 .modal-image {
-    width: 100%;
-    height: auto;
-    border-radius: 6px;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
 }
 
 .close {
-    position: absolute;
-    top: 10px; right: 15px;
-    font-size: 24px;
-    cursor: pointer;
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 24px;
+  cursor: pointer;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-/* profile details section */
+/* ===================== Profile Details ================= */
 .profile-details {
-    font-size: 0.95em;
+  font-size: 0.95em;
 }
 
 .profile-details .introduce {
-    color: #4A4A4A;
+  color: var(--color-dark);
 }
 
-/* name card section */
 .name-card {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #EFEFEF;
-    border-radius: 50px;
-    width: 110px;
-    height: 30px;
-    padding: 5px 10px;
-    transition: background-color 0.15s ease;
-    cursor: pointer;
-    font-size: 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #EFEFEF;
+  border-radius: 50px;
+  width: 110px;
+  height: 30px;
+  padding: 5px 10px;
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+  font-size: 1em;
 }
 
 .name-card:hover {
-    background-color: #E3E3E3;
+  background-color: #E3E3E3;
 }
 
 .name-card i {
-    margin-right: 5px;
+  margin-right: 5px;
 }
 
-/* github link section */
+/* ===================== GitHub Link ===================== */
 .github-link i {
-    color: #2187DF;
-    transition: color 0.2s ease;
+  color: #2187DF;
+  transition: color 0.2s ease;
 }
 
 .github-link a {
-    text-decoration: none;
-    color: #2187DF;
-
+  text-decoration: none;
+  color: #2187DF;
 }
 
-/* ================ skills section style ================= */
+/* ===================== Skills Section ================== */
 .skills-section {
   padding: 0 20px 40px;
-    border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
 }
 
-.skills-title, .projects-title {
-    font-family: "Radley", serif;
-    font-size: 1.8em;
-    font-weight: bold;
+.skills-title,
+.projects-title {
+  font-family: "Radley", serif;
+  font-size: 1.8em;
+  font-weight: bold;
 }
 
-/* ================ projects section style ================= */
+/* ===================== Projects Section ================ */
 .projects-section {
   padding: 0 20px 40px;
 }
 
-.projects-grid {
+.projects-section__grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 30px;
+  gap: var(--project-gap);
   max-width: 900px;
   margin: 0 auto;
 }
 
-.project-item {
+.projects-section__item {
   display: flex;
   flex-direction: column;
   align-items: center;
   cursor: pointer;
 }
 
-.project-box {
+.projects-section__box {
   width: 100%;
-  height: 220px;
-  border-radius: 12px;
+  height: var(--project-box-height);
+  border-radius: var(--project-radius);
   overflow: hidden;
-  box-shadow: 2px 2px 8px rgba(0,0,0,0.07);
-  transition: transform 0.2s ease;
+  box-shadow: var(--project-shadow);
+  transition: transform var(--transition-fast);
 }
 
-.project-box:hover {
+.projects-section__box:hover {
   transform: translateY(-5px);
 }
 
-.project-img {
+.projects-section__image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.project-caption {
+.projects-section__caption {
   margin-top: 15px;
   font-size: 16px;
   font-weight: 500;
   text-align: center;
+  color: var(--color-dark);
 }
 
+@media (max-width: 768px) {
+  .projects-section__grid {
+    grid-template-columns: 1fr;
+  }
+}
 
-/* footer */
+/* ===================== Footer ========================== */
 footer {
-    width: 100%;
-    background-color: #DCD4CC;
-    text-align: center;
-    padding: 20px 0;
-    color: #4A4A4A;
+  width: 100%;
+  background-color: #DCD4CC;
+  text-align: center;
+  padding: 20px 0;
+  color: var(--color-dark);
 }
-
-
 
 .footer-info {
-    display: flex;
-    justify-content: center;
-    gap: 80px;
-    margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 80px;
+  margin-top: 20px;
 }
 
-.contact-wrap, .developer-wrap {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
+.contact-wrap,
+.developer-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
 }
 
 .footer-info-title {
-    font-size: 1.5em;
-    font-weight: bolder;
-    margin-right: 20px;
+  font-size: 1.5em;
+  font-weight: bolder;
+  margin-right: 20px;
 }
 
-.contact-header, .developer-header {
-    padding-right: 20px;
-    border-right: 1.2px solid #C2BCB3;
+.contact-header,
+.developer-header {
+  padding-right: 20px;
+  border-right: 1.2px solid #C2BCB3;
 }
 
-.contact-content, .developer-content {
-    padding-left: 20px;
-    margin: 0;
-    font-size: 0.95em;
-    text-align: left;
+.contact-content,
+.developer-content {
+  padding-left: 20px;
+  margin: 0;
+  font-size: 0.95em;
+  text-align: left;
 }
 
 .developer-content a {
-    text-decoration: none;
-    color: #4A4A4A;
-    transition: color 0.2s ease;
+  text-decoration: none;
+  color: var(--color-dark);
+  transition: color 0.2s ease;
 }
 
 footer .copyright {
-    margin: 50px auto 0;
-    color: #8a8989;
+  margin: 50px auto 0;
+  color: #8a8989;
 }
