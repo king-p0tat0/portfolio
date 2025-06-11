@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>정서윤 포트폴리오</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Mogra&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Radley:ital@0;1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <a href="index.html" id="title">
+                Jung Seoyun Portfolio
+            </a>
+        </div>
+        <div class="sidebar-wrap">
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="profile.html">Profile</a></li>
+                <li><a href="skills.html">Skills</a></li>
+                <li><a href="projects.html">Projects</a></li>
+            </ul>
+        </div>
+    </header>
+    <main>
+        <section class="profile-section">
+            <ul class="profile-list">
+                <li class="profile-image">
+                    <img src="images/profile-image.jpg" alt="프로필 사진">
+                </li>
+                <li class="profile-info">
+                    <div class="name">
+                        정서윤
+                        <img src="images/badge.png" alt="badge" class="badge">
+                    </div>
+                    <div class="profile-details">
+                        <div class="introduce">비전공자의 한계를 실전 프로젝트와 기술 역량으로 극복한, 사용자 중심의 성장형 개발자입니다.</div>
+                        <div class="name-card" id="nameCardTrigger">
+                            <i class="fa-solid fa-at"></i> name card
+                        </div>
+
+                        <div id="nameCardModal" class="modal">
+                            <div class="modal-content">
+                                <span class="close">&times;</span>
+                                <img src="images/name-card.png" alt="명함 이미지" class="modal-image">
+                            </div>
+                        </div>
+
+                        <div>wjdtjdbs2089@gmail.com</div>
+                        <div class="github-link">
+                            <i class="fa-solid fa-link"></i>
+                            <a href="https://github.com/king-p0tat0">https://github.com/king-p0tat0</a>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <section class="skills-section">
+            <p class="skills-title">Skills</p>
+            <p>#HTML5</p>
+        </section>
+
+        <section class="projects-section">
+            <p class="projects-title">Projects</p>
+            <div class="projects-grid">
+                <div class="project-item">
+                    <div class="project-box">
+                        <img src="images/projects/ezboard.png" alt="Project 1" class="project-img" />
+                    </div>
+                    <p class="project-caption">키보드 쇼핑몰 'EZ Board'</p>
+                </div>
+
+                <div class="project-item">
+                    <div class="project-box">
+                        <img src="images/projects/feelyeon.png" alt="Project 2" class="project-img" />
+                    </div>
+                    <p class="project-caption">필기구 쇼핑몰 '필연'</p>
+                </div>
+
+                <div class="project-item">
+                    <div class="project-box">
+                        <img src="images/projects/withme.png" alt="Project 3" class="project-img" />
+                    </div>
+                    <p class="project-caption">반려견 문진관리 시스템 '위드미'</p>
+                </div>
+
+                <div class="project-item">
+                    <div class="project-box">
+                        <img src="images/projects/nexspace.png" alt="Project 4" class="project-img" />
+                    </div>
+                    <p class="project-caption">통합구매관리 시스템 'Nexspace ERP'</p>
+                </div>
+
+                <div class="project-item">
+                    <div class="project-box">
+                        <img src="images/projects/sample.png" alt="Project 4" class="project-img" />
+                    </div>
+                    <p class="project-caption">개인 포트폴리오 사이트</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer>
+        <div class="footer-info">
+            <div class="contact-wrap">
+                <div class="contact-header">
+                    <p class="footer-info-title">Contact</p>
+                </div>
+                <div class="contact-content">
+                    <p>010.7667.9260</p>
+                    <p>wjdtjdbs2089@gmail.com</p>
+                </div>
+            </div>
+
+            <div class="developer-wrap">
+                <div class="developer-header">
+                    <p class="footer-info-title">Developer</p>
+                </div>
+                <div class="developer-content">
+                    <p>Jung Seoyun (2000.09.26)</p>
+                    <a href="https://github.com/king-p0tat0">https://github.com/king-p0tat0</a>
+                </div>
+            </div>
+        </div>
+
+        <p class="copyright">© 2025. <span>Developed & Designed By Jung Seoyun</span></p>
+
+    </footer>
+
+    <script>
+        const modal = document.getElementById("nameCardModal");
+        const trigger = document.getElementById("nameCardTrigger");
+        const closeBtn = document.querySelector(".close");
+
+        trigger.addEventListener("click", () => {
+            modal.style.display = "flex";
+        });
+
+        closeBtn.addEventListener("click", () => {
+            modal.style.display = "none";
+        });
+
+        // 바깥 영역 클릭 시 모달 닫기
+        window.addEventListener("click", (e) => {
+            if (e.target === modal) {
+                modal.style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>
