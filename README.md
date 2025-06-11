@@ -45,6 +45,7 @@
 ---
 
 ## 파일 구조
+```
 /portfolio
 ├─ index.html
 ├─ style.css
@@ -58,7 +59,7 @@
 │ ├─ withme.png
 │ ├─ nexspace.png
 │ └─ sample.png
-
+```
 
 ---
 
