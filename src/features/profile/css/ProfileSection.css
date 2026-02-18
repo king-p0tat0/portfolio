@@ -25,8 +25,9 @@ html, body { margin: 0; padding: 0; }
   --icon-size: 50px;
   --icon-inner: 30px;
 
-  /* mobile scale */
   --m-scale: 1;
+
+  --m-down: 0.95;
 }
 
 /* =========================================================
@@ -243,16 +244,20 @@ html, body { margin: 0; padding: 0; }
     width: 100%;
     display: grid;
     justify-items: center;
-    margin-top: calc((52px * var(--m-scale)) + env(safe-area-inset-top));
+    margin-top: calc((45px * var(--m-scale) * var(--m-down)) + env(safe-area-inset-top));
   }
 
   .profile-image img {
-    width: min(calc(200px * var(--m-scale)), 70vw);
+    width: min(calc(200px * var(--m-scale) * var(--m-down)), 70vw);
     border-radius: 16px;
     object-fit: contain;
   }
 
-  .profile-name { margin: calc(12px * var(--m-scale)) auto 0; }
+  .profile-name {
+    margin: calc(12px * var(--m-scale) * var(--m-down)) auto 0;
+    transform: scale(var(--m-down));
+    transform-origin: top center;
+  }
 
   .mobile-only { display: block; }
 
@@ -277,23 +282,23 @@ html, body { margin: 0; padding: 0; }
     font-weight: 500;
     font-style: italic;
 
-    font-size: clamp(1.6rem, 5.6vw, 2.1rem);
+    font-size: clamp(1.35rem, 5.0vw, 1.9rem);
     line-height: 1.28;
     letter-spacing: -0.015em;
-    margin: calc(14px * var(--m-scale)) 0;
+    margin: calc(10px * var(--m-scale) * var(--m-down)) 0;
 
     color: #1f1f1f;
   }
 
   .profile-title .title-line2 {
     display: block;
-    margin-top: calc(7px * var(--m-scale));
+    margin-top: calc(7px * var(--m-scale) * var(--m-down));
 
     font-family: 'Pretendard', sans-serif;
     font-style: normal;
     font-weight: 500;
 
-    font-size: 0.78em;
+    font-size: 0.74em;
     line-height: 1.5;
     letter-spacing: -0.01em;
     color: #555;
