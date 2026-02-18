@@ -234,7 +234,7 @@ html, body { margin: 0; padding: 0; }
     margin: 0 auto;
 
     flex-direction: column;
-    gap: calc(22px * var(--m-scale));
+    gap: calc(18px * var(--m-scale));
 
     max-width: none;
     transform: none !important;
@@ -244,7 +244,7 @@ html, body { margin: 0; padding: 0; }
     width: 100%;
     display: grid;
     justify-items: center;
-    margin-top: calc((45px * var(--m-scale) * var(--m-down)) + env(safe-area-inset-top));
+    margin-top: calc((30px * var(--m-scale) * var(--m-down)) + env(safe-area-inset-top));
   }
 
   .profile-image img {
@@ -282,7 +282,7 @@ html, body { margin: 0; padding: 0; }
     font-weight: 500;
     font-style: italic;
 
-    font-size: clamp(1.35rem, 5.0vw, 1.9rem);
+    font-size: clamp(1.4rem, 5.0vw, 1.9rem);
     line-height: 1.28;
     letter-spacing: -0.015em;
     margin: calc(10px * var(--m-scale) * var(--m-down)) 0;
@@ -298,7 +298,7 @@ html, body { margin: 0; padding: 0; }
     font-style: normal;
     font-weight: 500;
 
-    font-size: 0.74em;
+    font-size: 0.73em;
     line-height: 1.5;
     letter-spacing: -0.01em;
     color: #555;
