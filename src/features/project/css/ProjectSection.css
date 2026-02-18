@@ -396,7 +396,7 @@
     overflow: hidden;
     position: relative;
 
-    aspect-ratio: 5 / 6;
+    aspect-ratio: 5 / 5.5;
   }
 
   .hero-background,
@@ -495,14 +495,12 @@
     background: #050507;
     padding: 12px 0 18px;
     align-items: stretch;
-
-    height: auto;
   }
 
   .section-title {
     width: auto;
     max-width: none;
-    margin: 8px var(--px) 10px;
+    margin: 6px var(--px) 8px;
     font-size: 1.15rem;
   }
 
