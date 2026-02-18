@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import './css/ProjectSection.css';
 
 import EzMain from '@/assets/images/projects/ezboard/ez1.png';
@@ -15,17 +15,36 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
 
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // ✅ Hero infinite carousel index (with clones)
+  // heroIndex range: 0..slides.length+1
+  // real slides are 1..slides.length
+  const [heroIndex, setHeroIndex] = useState(1);
+  const [heroTransition, setHeroTransition] = useState(true);
 
   const [selectedProjectId, setSelectedProjectId] = useState(null);
-
   const [isHeroBtnHovered, setIsHeroBtnHovered] = useState(false);
 
   const gridRef = useRef(null);
   const [swipeDir, setSwipeDir] = useState('right');
-
   const [hasSwiped, setHasSwiped] = useState(false);
+
+  // ✅ hero drag state (refs for perf)
+  const heroViewportRef = useRef(null);
+  const heroTrackRef = useRef(null);
+  const dragRef = useRef({
+    active: false,
+    pointerId: null,
+    startX: 0,
+    startY: 0,
+    dx: 0,
+    dy: 0,
+    width: 1,
+    baseIndex: 1,
+    moved: false,
+    raf: 0,
+    lockedAxis: null, // 'x' | 'y' | null
+  });
 
   // ✅ slides 고정 (매 렌더마다 새 배열 생성 방지)
   const slides = useMemo(
@@ -84,46 +103,62 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
     []
   );
 
+  // ✅ hero render list with clones: [last, ...slides, first]
+  const heroSlides = useMemo(() => {
+    if (slides.length === 0) return [];
+    const first = slides[0];
+    const last = slides[slides.length - 1];
+    return [last, ...slides, first];
+  }, [slides]);
+
+  const normalizeHeroIndexToReal = useCallback(
+    (idx) => {
+      // idx: 0..n+1  => real: 0..n-1
+      const n = slides.length;
+      if (n === 0) return 0;
+      if (idx === 0) return n - 1;
+      if (idx === n + 1) return 0;
+      return idx - 1;
+    },
+    [slides.length]
+  );
+
+  const realIndex = useMemo(
+    () => normalizeHeroIndexToReal(heroIndex),
+    [heroIndex, normalizeHeroIndexToReal]
+  );
+
+  const currentContent = useMemo(() => {
+    // hovered / selected 우선
+    const bySelected = selectedProjectId
+      ? slides.find((s) => s.id === selectedProjectId)
+      : null;
+    const byHover = hoveredItem ? slides.find((s) => s.id === hoveredItem) : null;
+    const byHero = slides[realIndex] ?? slides[0];
+    return bySelected || byHover || byHero || slides[0];
+  }, [selectedProjectId, hoveredItem, slides, realIndex]);
+
   const selectedProject = useMemo(() => {
     if (!selectedProjectId) return null;
     return projects.find((p) => p.id === selectedProjectId) ?? null;
   }, [selectedProjectId, projects]);
 
-  const currentContent = useMemo(() => {
-    const bySelected = selectedProjectId
-      ? slides.find((s) => s.id === selectedProjectId)
-      : null;
-    const byHover = hoveredItem ? slides.find((s) => s.id === hoveredItem) : null;
-    const bySlide = slides[currentSlide];
-
-    return bySelected || byHover || bySlide || slides[0];
-  }, [selectedProjectId, hoveredItem, currentSlide, slides]);
-
-  // ✅ 자동 슬라이드
-  // - 모달 열림 / 카드 hover / hero 버튼 hover 시 pause
-  // - interval + timeout 모두 cleanup
+  // ✅ 자동 슬라이드 (모달/hover/hero버튼/드래그 중이면 pause)
   useEffect(() => {
     if (isModalOpen) return;
     if (hoveredItem !== null) return;
     if (isHeroBtnHovered) return;
-
-    let timeoutId = null;
+    if (dragRef.current.active) return;
 
     const intervalId = window.setInterval(() => {
-      setIsTransitioning(true);
-
-      timeoutId = window.setTimeout(() => {
-        setCurrentSlide((prev) => (prev + 1) % slides.length);
-        setIsTransitioning(false);
-      }, 300);
+      setHeroTransition(true);
+      setHeroIndex((prev) => prev + 1);
     }, 4500);
 
-    return () => {
-      clearInterval(intervalId);
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [slides.length, hoveredItem, isModalOpen, isHeroBtnHovered]);
+    return () => clearInterval(intervalId);
+  }, [hoveredItem, isModalOpen, isHeroBtnHovered]);
 
+  // ✅ Intersection Observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -139,6 +174,7 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
     return () => observer.disconnect();
   }, []);
 
+  // ✅ Grid swipe hint
   useEffect(() => {
     const el = gridRef.current;
     if (!el) return;
@@ -166,28 +202,238 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
     };
   }, [hasSwiped]);
 
+  // ✅ hero transition end: clone edge fix (seamless loop)
+  const onHeroTransitionEnd = useCallback(
+    (e) => {
+      // ✅ hero-track에서 발생한 transition만 처리 (버블링 방지)
+      if (e && e.target !== heroTrackRef.current) return;
+
+      const n = slides.length;
+      if (n === 0) return;
+
+      // clone 영역이면 transition 없이 진짜 위치로 점프
+      if (heroIndex === 0) {
+        setHeroTransition(false);
+        setHeroIndex(n);
+        return;
+      }
+
+      if (heroIndex === n + 1) {
+        setHeroTransition(false);
+        setHeroIndex(1);
+        return;
+      }
+    },
+    [heroIndex, slides.length]
+  );
+
+  // ✅ when transition is turned off for the jump, re-enable next tick
+  useEffect(() => {
+    if (!heroTransition) {
+      const id = requestAnimationFrame(() => setHeroTransition(true));
+      return () => cancelAnimationFrame(id);
+    }
+  }, [heroTransition]);
+
+  // ----------------------------
+  // Hero drag handlers (pointer)
+  // ----------------------------
+  const clearRaf = () => {
+    const st = dragRef.current;
+    if (st.raf) cancelAnimationFrame(st.raf);
+    st.raf = 0;
+  };
+
+  const applyDragTransform = useCallback(() => {
+    const track = heroTrackRef.current;
+    const v = heroViewportRef.current;
+    if (!track || !v) return;
+
+    const st = dragRef.current;
+    const base = -st.baseIndex * st.width;
+    const x = base + st.dx;
+
+    // ✅ 드래그 중엔 px transform
+    track.style.transform = `translate3d(${x}px, 0, 0)`;
+  }, []);
+
+  const queueApply = () => {
+    const st = dragRef.current;
+    if (st.raf) return;
+    st.raf = requestAnimationFrame(() => {
+      st.raf = 0;
+      applyDragTransform();
+    });
+  };
+
+  const onHeroPointerDown = useCallback(
+    (e) => {
+      const v = heroViewportRef.current;
+      const track = heroTrackRef.current;
+      if (!v || !track) return;
+
+      // only primary button / touch
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+      const rect = v.getBoundingClientRect();
+      const st = dragRef.current;
+
+      st.active = true;
+      st.pointerId = e.pointerId;
+      st.startX = e.clientX;
+      st.startY = e.clientY;
+      st.dx = 0;
+      st.dy = 0;
+      st.width = rect.width || 1;
+      st.baseIndex = heroIndex;
+      st.moved = false;
+      st.lockedAxis = null;
+
+      // 손가락 따라가게(클래스 transition off)
+      setHeroTransition(false);
+
+      v.setPointerCapture?.(e.pointerId);
+      clearRaf();
+    },
+    [heroIndex]
+  );
+
+  const onHeroPointerMove = useCallback(
+    (e) => {
+      const v = heroViewportRef.current;
+      if (!v) return;
+
+      const st = dragRef.current;
+      if (!st.active || st.pointerId !== e.pointerId) return;
+
+      st.dx = e.clientX - st.startX;
+      st.dy = e.clientY - st.startY;
+
+      const ax = Math.abs(st.dx);
+      const ay = Math.abs(st.dy);
+
+      // axis lock: 처음 움직임으로 수평/수직 결정
+      if (!st.lockedAxis) {
+        if (ax < 6 && ay < 6) return;
+        st.lockedAxis = ax >= ay ? 'x' : 'y';
+      }
+
+      // 수직이면 스와이프 개입 안 함
+      if (st.lockedAxis === 'y') return;
+
+      st.moved = true;
+      queueApply();
+    },
+    [applyDragTransform]
+  );
+
+  const finishHeroDrag = useCallback((e) => {
+    const v = heroViewportRef.current;
+    const track = heroTrackRef.current;
+    if (!v || !track) return;
+
+    const st = dragRef.current;
+    if (!st.active || st.pointerId !== e.pointerId) return;
+
+    st.active = false;
+
+    // 수평 드래그가 아니면 종료 (tap/vertical)
+    if (st.lockedAxis !== 'x' || !st.moved) {
+      // ✅ inline px transform 제거 후, React % transform으로 복귀
+      track.style.transform = '';
+      setHeroTransition(true);
+      setHeroIndex(st.baseIndex);
+
+      st.pointerId = null;
+      clearRaf();
+      return;
+    }
+
+    const threshold = Math.min(80, st.width * 0.18);
+    let next = st.baseIndex;
+
+    // swipe left -> next, swipe right -> prev
+    if (st.dx <= -threshold) next = st.baseIndex + 1;
+    else if (st.dx >= threshold) next = st.baseIndex - 1;
+
+    // ✅ inline px transform 제거 → 이후 React % transform 사용
+    track.style.transform = '';
+
+    setHeroTransition(true);
+    setHeroIndex(next);
+
+    st.pointerId = null;
+    clearRaf();
+  }, []);
+
+  const onHeroPointerUp = useCallback((e) => finishHeroDrag(e), [finishHeroDrag]);
+  const onHeroPointerCancel = useCallback(
+    (e) => finishHeroDrag(e),
+    [finishHeroDrag]
+  );
+
+  // ✅ hoveredItem이 생기면 heroIndex도 같이 맞춰줌
+  useEffect(() => {
+    if (!hoveredItem) return;
+    const idx = slides.findIndex((s) => s.id === hoveredItem);
+    if (idx < 0) return;
+    setHeroTransition(true);
+    setHeroIndex(idx + 1); // real->heroIndex(클론 포함)
+  }, [hoveredItem, slides]);
+
+  // ✅ selectedProjectId로 열 때도 heroIndex 싱크
+  const openProject = useCallback(
+    (id) => {
+      setSelectedProjectId(id);
+      const idx = slides.findIndex((s) => s.id === id);
+      if (idx >= 0) {
+        setHeroTransition(true);
+        setHeroIndex(idx + 1);
+      }
+      setIsModalOpen(true);
+    },
+    [slides, setIsModalOpen]
+  );
+
   return (
     <div
       ref={sectionRef}
       className={`project-section ${isVisible ? 'is-visible' : ''}`}
     >
       {/* Hero */}
-      <div className="hero-section">
-        <div className="hero-background">
-          <img
-            src={currentContent.image}
-            alt={`${currentContent.title} Background`}
-            className={isTransitioning ? 'fade-out' : 'fade-in'}
-          />
+      <div
+        className="hero-section"
+        ref={heroViewportRef}
+        onPointerDown={onHeroPointerDown}
+        onPointerMove={onHeroPointerMove}
+        onPointerUp={onHeroPointerUp}
+        onPointerCancel={onHeroPointerCancel}
+      >
+        <div className="hero-background hero-carousel">
+          <div
+            className={`hero-track ${heroTransition ? 'is-animating' : ''}`}
+            ref={heroTrackRef}
+            style={{
+              transform: `translate3d(${-heroIndex * 100}%, 0, 0)`,
+            }}
+            onTransitionEnd={onHeroTransitionEnd}
+          >
+            {heroSlides.map((s, i) => (
+              <div className="hero-slide" key={`${s.id}-${i}`}>
+                <img
+                  src={s.image}
+                  alt={`${s.title} Background`}
+                  draggable="false"
+                />
+              </div>
+            ))}
+          </div>
+
           <div className="hero-overlay"></div>
         </div>
 
         <div className="hero-content">
-          <div
-            className={`hero-info ${hoveredItem ? 'content-changing' : ''} ${
-              isTransitioning ? 'fade-out' : 'fade-in'
-            }`}
-          >
+          <div className="hero-info">
             <h1 className="hero-title">{currentContent.title}</h1>
             <h2 className="hero-subtitle">{currentContent.subtitle}</h2>
 
@@ -206,11 +452,7 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
                 onMouseLeave={() => setIsHeroBtnHovered(false)}
                 onFocus={() => setIsHeroBtnHovered(true)}
                 onBlur={() => setIsHeroBtnHovered(false)}
-                onClick={() => {
-                  setSelectedProjectId(currentContent.id);
-                  setCurrentSlide(slides.findIndex((s) => s.id === currentContent.id));
-                  setIsModalOpen(true);
-                }}
+                onClick={() => openProject(currentContent.id)}
               >
                 <span className="hero-btn-icon" aria-hidden>
                   ℹ
@@ -230,20 +472,15 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
           {slides.map((item) => (
             <div
               key={item.id}
-              className={`project-card ${hoveredItem === item.id ? 'active' : ''}`}
-              onMouseEnter={() => {
-                setHoveredItem(item.id);
-                setCurrentSlide(slides.findIndex((s) => s.id === item.id));
-              }}
+              className={`project-card ${
+                hoveredItem === item.id ? 'active' : ''
+              }`}
+              onMouseEnter={() => setHoveredItem(item.id)}
               onMouseLeave={() => setHoveredItem(null)}
-              onClick={() => {
-                setSelectedProjectId(item.id);
-                setCurrentSlide(slides.findIndex((s) => s.id === item.id));
-                setIsModalOpen(true);
-              }}
+              onClick={() => openProject(item.id)}
             >
               <div className="card-image">
-                <img src={item.image} alt={item.title} />
+                <img src={item.image} alt={item.title} draggable="false" />
               </div>
 
               <div className="card-overlay">
@@ -264,18 +501,23 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
           ))}
         </div>
 
-          <p
-            className={`swipe-hint ${
-              swipeDir === 'left' ? 'is-left' : 'is-right'
-            } ${!hasSwiped ? 'is-nudge' : ''}`}
-            aria-hidden="true"
-          >
-            {swipeDir === 'left' ? (
-              <>Back <span className="swipe-hint__arrow">←</span></>
-            ) : (
-              <>Swipe to explore more <span className="swipe-hint__arrow">→</span></>
-            )}
-          </p>
+        <p
+          className={`swipe-hint ${
+            swipeDir === 'left' ? 'is-left' : 'is-right'
+          } ${!hasSwiped ? 'is-nudge' : ''}`}
+          aria-hidden="true"
+        >
+          {swipeDir === 'left' ? (
+            <>
+              Back <span className="swipe-hint__arrow">←</span>
+            </>
+          ) : (
+            <>
+              Swipe to explore more{' '}
+              <span className="swipe-hint__arrow">→</span>
+            </>
+          )}
+        </p>
       </div>
 
       <ProjectModal

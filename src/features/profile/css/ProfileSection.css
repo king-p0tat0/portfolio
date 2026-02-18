@@ -255,7 +255,7 @@ html, body { margin: 0; padding: 0; }
 
   .profile-name {
     margin: calc(12px * var(--m-scale) * var(--m-down)) auto 0;
-    transform: scale(var(--m-down));
+    transform: scale(calc(var(--m-down) * 0.9));
     transform-origin: top center;
   }
 
