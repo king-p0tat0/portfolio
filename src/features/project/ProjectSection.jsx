@@ -10,9 +10,11 @@ import PoMain from '@/assets/images/projects/portfolio/po1.png';
 import ProjectModal from './ProjectModal';
 import { projects } from '@/data/projects';
 
-const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
+const AUTO_INTERVAL = 4500;
+const AUTO_RESTART_DELAY = 300;
+
+const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
   const sectionRef = useRef(null);
-  const pendingAutoRestartRef = useRef(false);
 
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
@@ -28,9 +30,11 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
   const [swipeDir, setSwipeDir] = useState('right');
   const [hasSwiped, setHasSwiped] = useState(false);
 
-  // ✅ hero drag state (refs for perf)
+  // ✅ hero refs
   const heroViewportRef = useRef(null);
   const heroTrackRef = useRef(null);
+
+  // ✅ drag state
   const dragRef = useRef({
     active: false,
     pointerId: null,
@@ -45,9 +49,15 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
     lockedAxis: null, // 'x' | 'y' | null
   });
 
-  // ✅ auto slide timer ref (single source of truth)
+  // ✅ auto slide (single source of truth)
   const autoTimerRef = useRef(null);
   const restartTimeoutRef = useRef(null);
+
+  // ✅ “transition 중 연타” 방지용
+  const animatingRef = useRef(false);
+
+  // ✅ 드래그/스와이프 후, transition이 끝난 다음에 auto 재시작
+  const pendingAutoRestartRef = useRef(false);
 
   // ✅ slides 고정
   const slides = useMemo(
@@ -145,7 +155,7 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
   }, [selectedProjectId, projects]);
 
   // ----------------------------
-  // Auto slide controls (stable)
+  // Auto controls
   // ----------------------------
   const stopAuto = useCallback(() => {
     if (autoTimerRef.current) {
@@ -163,6 +173,7 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
     if (hoveredItem !== null) return false;
     if (isHeroBtnHovered) return false;
     if (dragRef.current.active) return false;
+    if (animatingRef.current) return false;
     return true;
   }, [isModalOpen, hoveredItem, isHeroBtnHovered]);
 
@@ -171,25 +182,28 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
 
     stopAuto();
     autoTimerRef.current = window.setInterval(() => {
+      animatingRef.current = true;
       setHeroTransition(true);
       setHeroIndex((prev) => prev + 1);
-    }, 4500);
+    }, AUTO_INTERVAL);
   }, [canAuto, stopAuto]);
 
-  const resetAuto = useCallback(() => {
+  const scheduleAutoRestart = useCallback(() => {
     stopAuto();
     restartTimeoutRef.current = window.setTimeout(() => {
       startAuto();
-    }, 300);
+    }, AUTO_RESTART_DELAY);
   }, [startAuto, stopAuto]);
 
-  // ✅ 자동 슬라이드 lifecycle
+  // ✅ auto lifecycle
   useEffect(() => {
     startAuto();
     return () => stopAuto();
   }, [startAuto, stopAuto]);
 
-  // ✅ Intersection Observer
+  // ----------------------------
+  // Observers / hints
+  // ----------------------------
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -205,7 +219,6 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
     return () => observer.disconnect();
   }, []);
 
-  // ✅ Grid swipe hint
   useEffect(() => {
     const el = gridRef.current;
     if (!el) return;
@@ -223,7 +236,6 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
     };
 
     update();
-
     el.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);
 
@@ -233,19 +245,26 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
     };
   }, [hasSwiped]);
 
-  // ✅ hero transition end: clone edge fix
-  const onHeroTransitionEnd = useCallback((e) => {
+  // ----------------------------
+  // Hero transition end: clone fix + restart auto
+  // ----------------------------
+  const onHeroTransitionEnd = useCallback(
+    (e) => {
+      // hero-track에서 발생한 transition만 처리 (버블링 방지)
       if (e && e.target !== heroTrackRef.current) return;
 
       const n = slides.length;
       if (n === 0) return;
 
+      // clone 영역이면 transition 없이 진짜 위치로 점프
       if (heroIndex === 0) {
         setHeroTransition(false);
         setHeroIndex(n);
+        animatingRef.current = false;
+
         if (pendingAutoRestartRef.current) {
-            pendingAutoRestartRef.current = false;
-            requestAnimationFrame(() => resetAuto());
+          pendingAutoRestartRef.current = false;
+          requestAnimationFrame(scheduleAutoRestart);
         }
         return;
       }
@@ -253,20 +272,27 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
       if (heroIndex === n + 1) {
         setHeroTransition(false);
         setHeroIndex(1);
+        animatingRef.current = false;
+
         if (pendingAutoRestartRef.current) {
-            pendingAutoRestartRef.current = false;
-            requestAnimationFrame(() => resetAuto());
+          pendingAutoRestartRef.current = false;
+          requestAnimationFrame(scheduleAutoRestart);
         }
         return;
       }
 
-      if (pendingAutoRestartRef.current) {
-          pendingAutoRestartRef.current = false;
-          resetAuto();
-      }
-    }, [heroIndex, slides.length, resetAuto]);
+      // 정상 슬라이드
+      animatingRef.current = false;
 
-  // ✅ when transition is turned off for the jump, re-enable next tick
+      if (pendingAutoRestartRef.current) {
+        pendingAutoRestartRef.current = false;
+        scheduleAutoRestart();
+      }
+    },
+    [heroIndex, slides.length, scheduleAutoRestart]
+  );
+
+  // jump에서 transition 꺼진 상태를 다음 틱에 복구
   useEffect(() => {
     if (!heroTransition) {
       const id = requestAnimationFrame(() => setHeroTransition(true));
@@ -275,13 +301,13 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
   }, [heroTransition]);
 
   // ----------------------------
-  // Hero drag handlers (pointer)
+  // Drag handlers
   // ----------------------------
-  const clearRaf = () => {
+  const clearRaf = useCallback(() => {
     const st = dragRef.current;
     if (st.raf) cancelAnimationFrame(st.raf);
     st.raf = 0;
-  };
+  }, []);
 
   const applyDragTransform = useCallback(() => {
     const track = heroTrackRef.current;
@@ -295,20 +321,23 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
     track.style.transform = `translate3d(${x}px, 0, 0)`;
   }, []);
 
-  const queueApply = () => {
+  const queueApply = useCallback(() => {
     const st = dragRef.current;
     if (st.raf) return;
     st.raf = requestAnimationFrame(() => {
       st.raf = 0;
       applyDragTransform();
     });
-  };
+  }, [applyDragTransform]);
 
   const onHeroPointerDown = useCallback(
     (e) => {
       const v = heroViewportRef.current;
       const track = heroTrackRef.current;
       if (!v || !track) return;
+
+      // transition 중 연타 방지
+      if (animatingRef.current) return;
 
       if (e.pointerType === 'mouse' && e.button !== 0) return;
 
@@ -326,14 +355,15 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
       st.moved = false;
       st.lockedAxis = null;
 
+      // 손가락 따라가게
       setHeroTransition(false);
       v.setPointerCapture?.(e.pointerId);
       clearRaf();
 
-      // ✅ user interaction: reset auto timer
+      // 유저 인터랙션 시작: auto는 일단 멈춤
       stopAuto();
     },
-    [heroIndex, stopAuto]
+    [heroIndex, clearRaf, stopAuto]
   );
 
   const onHeroPointerMove = useCallback(
@@ -350,79 +380,95 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
       const ax = Math.abs(st.dx);
       const ay = Math.abs(st.dy);
 
+      // axis lock
       if (!st.lockedAxis) {
         if (ax < 6 && ay < 6) return;
         st.lockedAxis = ax >= ay ? 'x' : 'y';
       }
 
+      // 세로 스크롤이면 개입 X
       if (st.lockedAxis === 'y') return;
 
       st.moved = true;
       queueApply();
     },
-    [applyDragTransform]
+    [queueApply]
   );
 
-  const finishHeroDrag = useCallback((e) => {
-    const v = heroViewportRef.current;
-    const track = heroTrackRef.current;
-    if (!v || !track) return;
+  const finishHeroDrag = useCallback(
+    (e) => {
+      const v = heroViewportRef.current;
+      const track = heroTrackRef.current;
+      if (!v || !track) return;
 
-    const st = dragRef.current;
-    if (!st.active || st.pointerId !== e.pointerId) return;
+      const st = dragRef.current;
+      if (!st.active || st.pointerId !== e.pointerId) return;
 
-    st.active = false;
+      st.active = false;
 
-    track.style.transform = '';
+      // inline px transform 제거 → React % transform으로 복귀
+      track.style.transform = '';
 
-    // tap/vertical => 슬라이드 이동 없음 => transitionEnd 없을 수 있음
-    if (st.lockedAxis !== 'x' || !st.moved) {
+      // tap/vertical
+      if (st.lockedAxis !== 'x' || !st.moved) {
+        setHeroTransition(true);
+        setHeroIndex(st.baseIndex);
+
+        st.pointerId = null;
+        clearRaf();
+
+        // 이동이 없으면 바로 auto 재시작 예약
+        scheduleAutoRestart();
+        return;
+      }
+
+      const threshold = Math.min(80, st.width * 0.18);
+      let next = st.baseIndex;
+
+      if (st.dx <= -threshold) next = st.baseIndex + 1;
+      else if (st.dx >= threshold) next = st.baseIndex - 1;
+
       setHeroTransition(true);
-      setHeroIndex(st.baseIndex);
+
+      // 실제 이동이면 transition 동안 락
+      if (next !== st.baseIndex) {
+        animatingRef.current = true;
+        pendingAutoRestartRef.current = true;
+      } else {
+        // 이동 없으면 바로 auto 재시작
+        scheduleAutoRestart();
+      }
+
+      setHeroIndex(next);
 
       st.pointerId = null;
       clearRaf();
-
-      resetAuto();
-      return;
-    }
-
-    const threshold = Math.min(80, st.width * 0.18);
-    let next = st.baseIndex;
-
-    if (st.dx <= -threshold) next = st.baseIndex + 1;
-    else if (st.dx >= threshold) next = st.baseIndex - 1;
-
-    setHeroTransition(true);
-    setHeroIndex(next);
-
-    st.pointerId = null;
-    clearRaf();
-
-    if (next !== st.baseIndex) {
-      pendingAutoRestartRef.current = true;
-    } else {
-      resetAuto();
-    }
-  }, [clearRaf, resetAuto]);
+    },
+    [clearRaf, scheduleAutoRestart]
+  );
 
   const onHeroPointerUp = useCallback((e) => finishHeroDrag(e), [finishHeroDrag]);
   const onHeroPointerCancel = useCallback((e) => finishHeroDrag(e), [finishHeroDrag]);
 
-  // ✅ hoveredItem이 생기면 heroIndex도 같이 맞춰줌
+  // ----------------------------
+  // Hover sync
+  // ----------------------------
   useEffect(() => {
     if (!hoveredItem) return;
     const idx = slides.findIndex((s) => s.id === hoveredItem);
     if (idx < 0) return;
+
     setHeroTransition(true);
     setHeroIndex(idx + 1);
-    resetAuto();
-  }, [hoveredItem, slides, resetAuto]);
+    scheduleAutoRestart();
+  }, [hoveredItem, slides, scheduleAutoRestart]);
 
-  // ✅ open project + sync hero
+  // ----------------------------
+  // Open project
+  // ----------------------------
   const openProject = useCallback(
     (id) => {
-      resetAuto();
+      scheduleAutoRestart();
       setSelectedProjectId(id);
 
       const idx = slides.findIndex((s) => s.id === id);
@@ -433,7 +479,7 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
 
       setIsModalOpen(true);
     },
-    [slides, setIsModalOpen, resetAuto]
+    [slides, setIsModalOpen, scheduleAutoRestart]
   );
 
   return (
@@ -461,7 +507,7 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
             ))}
           </div>
 
-          <div className="hero-overlay"></div>
+          <div className="hero-overlay" />
         </div>
 
         <div className="hero-content">
@@ -556,7 +602,7 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
           setSelectedProjectId(null);
           setHoveredItem(null);
           setIsModalOpen(false);
-          resetAuto();
+          scheduleAutoRestart();
         }}
       />
     </div>
