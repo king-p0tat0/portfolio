@@ -1,0 +1,735 @@
+/* =========================
+   Modal Base
+========================= */
+.project-modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  pointer-events: auto;
+}
+
+.project-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  opacity: 1;
+  transition: opacity 0.18s ease-out;
+}
+
+/* ✅ IMPORTANT:
+   - zoom fixed 깨짐 방지: modal content에는 transform 사용 금지
+   - (현재 transform 없음, 유지)
+*/
+.project-modal-content {
+  position: relative;
+  z-index: 1;
+
+  width: min(960px, calc(100% - 3rem));
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  background-color: var(--bg-dark);
+  color: var(--text-white);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.22s ease-out, transform 0.22s ease-out;
+  animation: modalPop 0.22s ease-out;
+
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.2rem;
+  padding: 2.5rem 2.5rem 2.8rem;
+
+  min-width: 0;
+}
+
+.project-modal-close {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.2rem;
+
+  font-size: 1.4rem;
+  color: var(--text-gray);
+
+  cursor: pointer;
+  background: none;
+  border: none;
+
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.project-modal-close:hover {
+  color: var(--text-white);
+}
+
+.project-modal-close:active {
+  transform: scale(0.92);
+}
+
+/* Motion */
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* =========================
+   Header
+========================= */
+.project-modal-header {
+  margin-bottom: 1.4rem;
+}
+
+.project-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.project-summary {
+  margin-top: 0.6rem;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text-gray);
+}
+
+.project-stack-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.stack-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+
+  border-radius: 999px;
+  border: 1px solid rgba(255, 176, 32, 0.5);
+  background: rgba(255, 172, 0, 0.05);
+
+  color: #ffb020;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+  line-height: 1;
+  user-select: none;
+}
+
+/* =========================
+   Body Layout
+========================= */
+.project-modal-body {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 1.8rem;
+  min-width: 0;
+}
+
+/* =========================
+   Left Nav
+========================= */
+.project-modal-nav {
+  position: sticky;
+  top: 2rem;
+  align-self: start;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.project-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.project-nav-group-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-white);
+  opacity: 0.95;
+}
+
+.project-nav-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.project-nav-divider {
+  border: none;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0.8rem 0;
+}
+
+.project-nav-item {
+  width: 100%;
+  text-align: left;
+
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
+
+  background: transparent;
+  border: none;
+
+  color: var(--text-gray);
+  font-size: 0.9rem;
+
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.project-nav-item:hover {
+  color: var(--text-white);
+}
+
+.project-nav-item.is-active {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text-white);
+}
+
+/* =========================
+   Right Panel (Content)
+========================= */
+.project-modal-panel {
+  min-width: 0;
+}
+
+.project-modal-panel section {
+  margin-bottom: 2.4rem;
+}
+
+.project-modal-panel section:last-child {
+  margin-bottom: 0;
+}
+
+.project-modal-panel p {
+  margin-bottom: 0.8rem;
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: var(--text-gray);
+
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+.project-modal-panel p:last-child {
+  margin-bottom: 0;
+}
+
+/* Lists (panel + rich) */
+.project-modal-panel ul,
+.rich-list {
+  margin-top: 0.6rem;
+  padding-left: 1.1rem;
+}
+
+.project-modal-panel li,
+.rich-list li {
+  margin-bottom: 0.45rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-gray);
+
+  overflow-wrap: anywhere;
+}
+
+/* Rich blocks */
+.rich-block {
+  margin-top: 2rem;
+}
+
+.project-modal-panel section > .rich-block:first-child {
+  margin-top: 0;
+}
+
+.rich-title {
+  margin-bottom: 0.7rem;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--text-white);
+}
+
+/* =========================
+   Captures
+========================= */
+.capture-section {
+  width: 100%;
+  min-width: 0;
+}
+
+.capture-figure {
+  margin: 0;
+}
+
+.capture-img {
+  width: 100%;
+  height: auto;
+  display: block;
+
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.capture-caption {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* =========================
+   Shared Nav Button (Carousel / Zoom)
+========================= */
+:where(.carousel-btn, .zoom-nav) {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.92);
+
+  display: grid;
+  place-items: center;
+
+  cursor: pointer;
+  user-select: none;
+  line-height: 1;
+  padding: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :where(.carousel-btn, .zoom-nav):hover {
+    background: rgba(0,0,0,0.14);
+    border-color: rgba(0,0,0,0.22);
+  }
+}
+
+/* =========================
+   Carousel
+========================= */
+.carousel {
+  position: relative;
+  min-width: 0;
+}
+
+.carousel-stage {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* 이미지 기준 중앙(세로) */
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  font-size: 28px;
+}
+
+.carousel-btn.is-prev {
+  left: 10px;
+}
+
+.carousel-btn.is-next {
+  right: 10px;
+}
+
+.capture-img.is-clickable {
+  cursor: zoom-in;
+}
+
+.carousel-meta {
+  margin-top: 12px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+
+  text-align: center;
+}
+
+.carousel-meta .capture-caption {
+  margin-top: 0;
+}
+
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.carousel-dots .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+
+  border: 0;
+  background: rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+}
+
+.carousel-dots .dot.is-active {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* =========================
+   Zoom Modal (FIXED)
+   ✅ body portal로 올라가서 fixed 기준이 뷰포트로 잡힘 (치우침 해결)
+========================= */
+.zoom-backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.78);
+
+  display: grid;
+  place-items: center;
+  padding: 22px;
+}
+
+.zoom-content {
+  width: min(1100px, 96vw);
+  max-height: calc(100svh - 44px);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+
+  min-height: 0;
+}
+
+.zoom-viewport {
+  position: relative;
+  width: 100%;
+
+  height: min(70vh, 580px);
+
+  overflow: hidden;
+
+  border: none;
+}
+
+/* PC 단일 이미지 */
+.zoom-viewport > .zoom-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* Mobile scroller */
+.zoom-scroller {
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+
+  padding: 0;
+  margin: 0;
+  scroll-padding: 0;
+}
+
+.zoom-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.zoom-slide {
+  flex: 0 0 100%;
+  height: 100%;
+
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+
+  display: grid;
+  place-items: center;
+
+  box-sizing: border-box;
+}
+
+.zoom-scroller .zoom-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+
+  display: block;
+  border-radius: 0;
+
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+/* Caption */
+.zoom-caption {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.86);
+  line-height: 1.45;
+  font-size: 0.95rem;
+
+  margin: 0;
+}
+
+.zoom-count {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.92em;
+}
+
+/* PC zoom nav */
+.zoom-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+
+  font-size: 36px;
+}
+
+.zoom-prev {
+  left: 12px;
+}
+
+.zoom-next {
+  right: 12px;
+}
+
+/* 닫기 */
+.zoom-close {
+  padding: 10px 14px;
+  min-width: 72px;
+
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+
+  color: #fff;
+  font-size: 0.9rem;
+  letter-spacing: -0.01em;
+}
+
+/* =========================================================
+   Mobile
+========================================================= */
+@media (max-width: 768px),
+       ((hover: none) and (pointer: coarse)) {
+
+  .project-modal-content {
+    width: min(92vw, 560px);
+    max-height: 86svh;
+
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 14px;
+
+    padding: 18px 16px 16px;
+  }
+
+  .project-modal-body {
+    min-height: 0;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+
+    display: block;
+    padding-right: 2px;
+  }
+
+  .project-modal-nav { display: none; }
+
+  .project-modal-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    padding: 10px 10px;
+    margin: 0 0 20px;
+
+    background: rgb(14, 14, 14);
+
+    border-top: 2px solid rgba(255,255,255,0.06);
+    border-bottom: 2px solid rgba(255,255,255,0.06);
+  }
+
+  .project-modal-tabs::-webkit-scrollbar { display: none; }
+
+  .tab-item {
+    flex: 0 0 auto;
+
+    appearance: none;
+    -webkit-appearance: none;
+
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.06);
+
+    padding: 10px 12px;
+    border-radius: 999px;
+
+    color: rgba(255,255,255,0.72);
+    font-size: 0.9rem;
+    letter-spacing: -0.01em;
+    line-height: 1;
+
+    user-select: none;
+    white-space: nowrap;
+
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.12s ease;
+  }
+
+  .tab-item:active { transform: translateY(1px); }
+
+  .tab-item.is-active {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  /* ✅ zoom: 모바일은 뷰포트 높이를 줄여 캡션이 "바로 아래"에 오게 */
+  .zoom-backdrop { padding: 14px; }
+
+  .zoom-content {
+    width: min(96vw, 560px);
+    max-height: calc(100svh - 28px);
+  }
+
+  .zoom-viewport {
+    height: 22vh;
+    border-radius: 14px;
+  }
+
+  .project-modal-close,
+  .capture-img.is-clickable,
+  .carousel-btn {
+    cursor: default;
+  }
+}
+
+/* =========================================================
+   Modal - Mobile LANDSCAPE (vertical tabs + scroll fix)
+========================================================= */
+@media (orientation: landscape) and (max-height: 520px) and (pointer: coarse) {
+
+  /* ✅ header(title) 고정 + body만 스크롤 되게 */
+  .project-modal-content {
+    width: min(94vw, 900px);
+    max-height: 92svh;
+
+    display: grid;
+    grid-template-rows: auto 1fr; /* header + body */
+    gap: 10px;
+
+    overflow: hidden; /* 전체 스크롤은 막고, 내부만 스크롤 */
+    padding: 14px;
+  }
+
+  /* header는 그대로 보이게 (타이틀 포함) */
+  .project-modal-header {
+    margin-bottom: 0;
+  }
+
+  /* ✅ body가 “남은 높이”를 정확히 받게 */
+  .project-modal-body {
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;  /* 스크롤은 panel에서 */
+    display: block;    /* 모바일은 PC 2col grid 말고 단일 wrapper */
+    padding-right: 0;
+  }
+
+  /* ✅ 탭(좌) + 패널(우) */
+  .project-modal-mobileShell {
+    min-height: 0;   /* 핵심 */
+    height: 100%;    /* 핵심 */
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    gap: 12px;
+  }
+
+  /* ✅ 세로 탭: 자체 스크롤 가능 */
+  .project-modal-tabs {
+    min-height: 0;
+    height: 100%;x
+
+    position: sticky;
+    top: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    padding: 0;
+    margin: 0;
+
+    background: transparent;
+    border: none;
+  }
+
+  .tab-item {
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 12px;
+    white-space: normal;
+    line-height: 1.15;
+  }
+
+  /* ✅ 오른쪽 콘텐츠가 실제로 스크롤 되게 */
+  .project-modal-panel.is-mobile {
+    min-height: 0;   /* 핵심 */
+    height: 100%;    /* 핵심 */
+
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+
+    padding-right: 2px;
+  }
+}

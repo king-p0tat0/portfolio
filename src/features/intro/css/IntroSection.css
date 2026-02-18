@@ -1,0 +1,370 @@
+/* ================================
+   전역 스타일 및 기본 설정
+   ================================ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  color: #333;
+  overflow-x: hidden;
+  min-height: 100vh;
+  user-select: none;
+}
+
+/* ✅ 배경: 1px~2px 경계 방지(오버스캔) */
+.bg-image {
+  position: fixed;
+  inset: -2px;
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+  object-fit: cover;
+  z-index: -1;
+  pointer-events: none;
+  user-select: none;
+}
+
+
+.main-section {
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+  user-select: none;
+}
+
+.main-content {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+
+  width: min(1100px, 92vw);
+}
+
+/* ✅ 타이틀은 물감 위로 따로 올리기 */
+.main-title {
+  font-size: clamp(2.6rem, 4.5vw, 4rem);
+  font-weight: 700;
+  line-height: 1.15;
+  color: #212E3C;
+
+  margin: 0;
+  margin-bottom: clamp(0.9rem, 2.5vh, 5rem);
+
+  word-break: keep-all;
+  overflow-wrap: normal;
+  white-space: nowrap; /* PC에선 한 줄 유지 */
+
+  transform: translateY(clamp(-58px, -6vh, -24px));
+}
+
+/* ✅ 아래 두 줄은 물감 가운데 라인에 자연스럽게 */
+.main-subtitle {
+  font-size: clamp(1.2rem, 2.4vw, 2.0rem);
+  font-weight: 500;
+  margin: 0 0 0.7rem 0;
+  color: #444D56;
+
+  opacity: 0;
+  transform: translateY(30px);
+
+  word-break: keep-all;
+}
+
+.main-description {
+  font-size: clamp(1.05rem, 2vw, 1.5rem);
+  font-weight: 400;
+  margin: 0;
+  color: #576061;
+
+  opacity: 0;
+  transform: translateY(30px);
+
+  word-break: keep-all;
+}
+
+/* 등장 애니메이션 유지 */
+.main-subtitle.subtitle-visible {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.main-description.description-visible {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+/* ================================
+   타이핑 효과 및 액센트
+   ================================ */
+.typing-text{
+  white-space: pre-line;
+  display: inline;
+}
+
+.typing-cursor{
+  display: inline-block;
+  margin-left: 0.08em;
+  color: #444D56;
+  font-weight: 300;
+  font-size: 0.95em;
+  line-height: 1;
+  animation: blink 1s infinite;
+}
+
+.accent-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: #FFAC00;
+  border-radius: 50%;
+  margin-left: 8px;
+  opacity: 0;
+  animation: dotFadeIn 0.8s ease-out 4s forwards;
+}
+
+/* ================================
+   스크롤 다운 아이콘
+   ================================ */
+.scroll-down {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.8s ease-out;
+  text-align: center;
+}
+
+.scroll-down.show {
+  opacity: 1;
+}
+
+.mouse {
+  width: 24px;
+  height: 40px;
+  border: 2px solid rgba(44, 62, 80, 0.6);
+  border-radius: 12px;
+  position: relative;
+  margin: 0 auto 8px;
+}
+
+.wheel {
+  width: 4px;
+  height: 8px;
+  background-color: rgba(44, 62, 80, 0.6);
+  border-radius: 2px;
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: scroll 2s infinite;
+}
+
+.scroll-text {
+  font-size: 0.8rem;
+  color: rgba(44, 62, 80, 0.6);
+  letter-spacing: 1px;
+  font-weight: 500;
+}
+
+
+/* ================================
+   애니메이션
+   ================================ */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dotFadeIn {
+  to { opacity: 1; }
+}
+
+@keyframes scroll {
+  0% {
+    top: 8px;
+    opacity: 1;
+  }
+  50% {
+    top: 16px;
+    opacity: 0.5;
+  }
+  100% {
+    top: 24px;
+    opacity: 0;
+  }
+}
+
+/* ================================
+   반응형 디자인 (모바일)
+   ================================ */
+
+/* 태블릿 이하 */
+@media (max-width: 768px) {
+  .main-content {
+    top: 47%;
+    width: 90vw;
+  }
+
+  .main-title {
+    font-size: clamp(2rem, 6vw, 2.8rem);
+    white-space: pre-line;
+    transform: translateY(clamp(-50px, -5.5vh, -25px));
+    line-height: 1.35;
+  }
+
+  .main-subtitle {
+    font-size: clamp(1.1rem, 4vw, 1.5rem);
+    margin: 0 0 0.6rem 0;
+    line-height: 1.4;
+  }
+
+  .main-description {
+    font-size: clamp(1rem, 3.5vw, 1.25rem);
+    line-height: 1.4;
+  }
+
+  .scroll-down {
+    bottom: 1.5rem;
+  }
+
+  .mouse {
+    width: 20px;
+    height: 34px;
+  }
+
+  .wheel {
+    width: 3px;
+    height: 6px;
+  }
+
+  .scroll-text {
+    font-size: 0.7rem;
+  }
+}
+
+/* 작은 모바일 */
+@media (max-width: 480px) {
+  .main-content {
+    top: 47%;
+    width: 88vw;
+  }
+
+  .main-title {
+    font-size: clamp(1.8rem, 6.5vw, 2.4rem);
+    transform: translateY(clamp(-40px, -4.5vh, -22px));
+    margin-bottom: clamp(0.8rem, 2.2vh, 1.4rem);
+    line-height: 1.4;
+  }
+
+  .main-subtitle {
+    font-size: clamp(1rem, 4.2vw, 1.3rem);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.5;
+  }
+
+  .main-description {
+    font-size: clamp(0.95rem, 3.8vw, 1.15rem);
+    line-height: 1.5;
+  }
+
+  .accent-dot {
+    width: 6px;
+    height: 6px;
+    margin-left: 6px;
+  }
+
+  .scroll-down {
+    bottom: 1rem;
+  }
+
+  .mouse {
+    width: 18px;
+    height: 30px;
+  }
+
+  .wheel {
+    width: 2.5px;
+    height: 5px;
+    top: 6px;
+  }
+
+  .scroll-text {
+    font-size: 0.65rem;
+  }
+
+  .typing-text::after,
+  .typing-text.typing-complete::after {
+    right: -0.5em;
+    font-size: 0.9em;
+  }
+}
+
+/* 매우 작은 화면 */
+@media (max-width: 360px) {
+  .main-content {
+    top: 47%;
+  }
+
+  .main-title {
+    font-size: 1.6rem;
+    transform: translateY(-35px);
+  }
+
+  .main-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .main-description {
+    font-size: 0.9rem;
+  }
+}
+
+/* 가로 모드 (작은 높이) */
+@media (max-height: 600px) and (orientation: landscape) {
+  .main-content {
+    top: 50%;
+  }
+
+  .main-title {
+    transform: translateY(-20px);
+    margin-bottom: 0.6rem;
+    font-size: 1.8rem;
+  }
+
+  .main-subtitle {
+    margin: 0 0 0.3rem 0;
+    font-size: 1rem;
+  }
+
+  .main-description {
+    font-size: 0.95rem;
+  }
+
+  .scroll-down {
+    bottom: 0.8rem;
+  }
+
+  .mouse {
+    width: 18px;
+    height: 28px;
+  }
+
+  .scroll-text {
+    font-size: 0.65rem;
+  }
+}

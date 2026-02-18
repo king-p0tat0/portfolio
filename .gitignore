@@ -9,12 +9,30 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+build
 *.local
+
+# env
+.env
+.env.*
+
+# framework
+.next
+out
+.vercel
+
+# cache
+.cache
+.parcel-cache
+.eslintcache
+.npm
+.yarn
 
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj

@@ -13,6 +13,12 @@
   width: 100vw;
   position: relative;
   overflow: hidden;
+
+  /* iOS overscroll(바운스)로 슬라이드 튐 방지 */
+  overscroll-behavior: none;
+
+  /* 모바일에서 "세로 스크롤"은 허용해야 내부 스크롤이 됨 */
+  touch-action: pan-y;
 }
 
 /* 슬라이드 래퍼 */
@@ -30,12 +36,23 @@
   height: 100vh;
   width: 100vw;
   flex-shrink: 0;
+  position: relative;
+
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
   box-sizing: border-box;
   position: relative;
+
+}
+
+/* active 아닌 슬라이드는 스크롤 막아서 “안 보이는 영역 스크롤” 방지 */
+.slide:not(.is-active) {
+  overflow: hidden;
 }
 
 /* 부드러운 전환 효과 */
@@ -62,10 +79,15 @@ html, body {
   100% { transform: translateX(100%); opacity: 0; }
 }
 
-/* 반응형 디자인 */
-@media (max-width: 768px) {
-  .slide {
-    padding: 1rem;
+@media (max-width: 767px) {
+  .app-nav {
+    display: none;
   }
+}
 
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
