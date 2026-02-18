@@ -12,13 +12,12 @@ import { projects } from '@/data/projects';
 
 const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
   const sectionRef = useRef(null);
+  const pendingAutoRestartRef = useRef(false);
 
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
 
   // ✅ Hero infinite carousel index (with clones)
-  // heroIndex range: 0..slides.length+1
-  // real slides are 1..slides.length
   const [heroIndex, setHeroIndex] = useState(1);
   const [heroTransition, setHeroTransition] = useState(true);
 
@@ -46,7 +45,11 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
     lockedAxis: null, // 'x' | 'y' | null
   });
 
-  // ✅ slides 고정 (매 렌더마다 새 배열 생성 방지)
+  // ✅ auto slide timer ref (single source of truth)
+  const autoTimerRef = useRef(null);
+  const restartTimeoutRef = useRef(null);
+
+  // ✅ slides 고정
   const slides = useMemo(
     () => [
       {
@@ -113,7 +116,6 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
 
   const normalizeHeroIndexToReal = useCallback(
     (idx) => {
-      // idx: 0..n+1  => real: 0..n-1
       const n = slides.length;
       if (n === 0) return 0;
       if (idx === 0) return n - 1;
@@ -129,7 +131,6 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
   );
 
   const currentContent = useMemo(() => {
-    // hovered / selected 우선
     const bySelected = selectedProjectId
       ? slides.find((s) => s.id === selectedProjectId)
       : null;
@@ -143,20 +144,50 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
     return projects.find((p) => p.id === selectedProjectId) ?? null;
   }, [selectedProjectId, projects]);
 
-  // ✅ 자동 슬라이드 (모달/hover/hero버튼/드래그 중이면 pause)
-  useEffect(() => {
-    if (isModalOpen) return;
-    if (hoveredItem !== null) return;
-    if (isHeroBtnHovered) return;
-    if (dragRef.current.active) return;
+  // ----------------------------
+  // Auto slide controls (stable)
+  // ----------------------------
+  const stopAuto = useCallback(() => {
+    if (autoTimerRef.current) {
+      clearInterval(autoTimerRef.current);
+      autoTimerRef.current = null;
+    }
+    if (restartTimeoutRef.current) {
+      clearTimeout(restartTimeoutRef.current);
+      restartTimeoutRef.current = null;
+    }
+  }, []);
 
-    const intervalId = window.setInterval(() => {
+  const canAuto = useCallback(() => {
+    if (isModalOpen) return false;
+    if (hoveredItem !== null) return false;
+    if (isHeroBtnHovered) return false;
+    if (dragRef.current.active) return false;
+    return true;
+  }, [isModalOpen, hoveredItem, isHeroBtnHovered]);
+
+  const startAuto = useCallback(() => {
+    if (!canAuto()) return;
+
+    stopAuto();
+    autoTimerRef.current = window.setInterval(() => {
       setHeroTransition(true);
       setHeroIndex((prev) => prev + 1);
     }, 4500);
+  }, [canAuto, stopAuto]);
 
-    return () => clearInterval(intervalId);
-  }, [hoveredItem, isModalOpen, isHeroBtnHovered]);
+  const resetAuto = useCallback(() => {
+    stopAuto();
+    restartTimeoutRef.current = window.setTimeout(() => {
+      startAuto();
+    }, 300);
+  }, [startAuto, stopAuto]);
+
+  // ✅ 자동 슬라이드 lifecycle
+  useEffect(() => {
+    startAuto();
+    return () => stopAuto();
+  }, [startAuto, stopAuto]);
 
   // ✅ Intersection Observer
   useEffect(() => {
@@ -202,30 +233,38 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
     };
   }, [hasSwiped]);
 
-  // ✅ hero transition end: clone edge fix (seamless loop)
-  const onHeroTransitionEnd = useCallback(
-    (e) => {
-      // ✅ hero-track에서 발생한 transition만 처리 (버블링 방지)
+  // ✅ hero transition end: clone edge fix
+  const onHeroTransitionEnd = useCallback((e) => {
       if (e && e.target !== heroTrackRef.current) return;
 
       const n = slides.length;
       if (n === 0) return;
 
-      // clone 영역이면 transition 없이 진짜 위치로 점프
       if (heroIndex === 0) {
         setHeroTransition(false);
         setHeroIndex(n);
+        if (pendingAutoRestartRef.current) {
+            pendingAutoRestartRef.current = false;
+            requestAnimationFrame(() => resetAuto());
+        }
         return;
       }
 
       if (heroIndex === n + 1) {
         setHeroTransition(false);
         setHeroIndex(1);
+        if (pendingAutoRestartRef.current) {
+            pendingAutoRestartRef.current = false;
+            requestAnimationFrame(() => resetAuto());
+        }
         return;
       }
-    },
-    [heroIndex, slides.length]
-  );
+
+      if (pendingAutoRestartRef.current) {
+          pendingAutoRestartRef.current = false;
+          resetAuto();
+      }
+    }, [heroIndex, slides.length, resetAuto]);
 
   // ✅ when transition is turned off for the jump, re-enable next tick
   useEffect(() => {
@@ -253,7 +292,6 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
     const base = -st.baseIndex * st.width;
     const x = base + st.dx;
 
-    // ✅ 드래그 중엔 px transform
     track.style.transform = `translate3d(${x}px, 0, 0)`;
   }, []);
 
@@ -272,7 +310,6 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
       const track = heroTrackRef.current;
       if (!v || !track) return;
 
-      // only primary button / touch
       if (e.pointerType === 'mouse' && e.button !== 0) return;
 
       const rect = v.getBoundingClientRect();
@@ -289,13 +326,14 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
       st.moved = false;
       st.lockedAxis = null;
 
-      // 손가락 따라가게(클래스 transition off)
       setHeroTransition(false);
-
       v.setPointerCapture?.(e.pointerId);
       clearRaf();
+
+      // ✅ user interaction: reset auto timer
+      stopAuto();
     },
-    [heroIndex]
+    [heroIndex, stopAuto]
   );
 
   const onHeroPointerMove = useCallback(
@@ -312,13 +350,11 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
       const ax = Math.abs(st.dx);
       const ay = Math.abs(st.dy);
 
-      // axis lock: 처음 움직임으로 수평/수직 결정
       if (!st.lockedAxis) {
         if (ax < 6 && ay < 6) return;
         st.lockedAxis = ax >= ay ? 'x' : 'y';
       }
 
-      // 수직이면 스와이프 개입 안 함
       if (st.lockedAxis === 'y') return;
 
       st.moved = true;
@@ -337,40 +373,41 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
 
     st.active = false;
 
-    // 수평 드래그가 아니면 종료 (tap/vertical)
+    track.style.transform = '';
+
+    // tap/vertical => 슬라이드 이동 없음 => transitionEnd 없을 수 있음
     if (st.lockedAxis !== 'x' || !st.moved) {
-      // ✅ inline px transform 제거 후, React % transform으로 복귀
-      track.style.transform = '';
       setHeroTransition(true);
       setHeroIndex(st.baseIndex);
 
       st.pointerId = null;
       clearRaf();
+
+      resetAuto();
       return;
     }
 
     const threshold = Math.min(80, st.width * 0.18);
     let next = st.baseIndex;
 
-    // swipe left -> next, swipe right -> prev
     if (st.dx <= -threshold) next = st.baseIndex + 1;
     else if (st.dx >= threshold) next = st.baseIndex - 1;
-
-    // ✅ inline px transform 제거 → 이후 React % transform 사용
-    track.style.transform = '';
 
     setHeroTransition(true);
     setHeroIndex(next);
 
     st.pointerId = null;
     clearRaf();
-  }, []);
+
+    if (next !== st.baseIndex) {
+      pendingAutoRestartRef.current = true;
+    } else {
+      resetAuto();
+    }
+  }, [clearRaf, resetAuto]);
 
   const onHeroPointerUp = useCallback((e) => finishHeroDrag(e), [finishHeroDrag]);
-  const onHeroPointerCancel = useCallback(
-    (e) => finishHeroDrag(e),
-    [finishHeroDrag]
-  );
+  const onHeroPointerCancel = useCallback((e) => finishHeroDrag(e), [finishHeroDrag]);
 
   // ✅ hoveredItem이 생기면 heroIndex도 같이 맞춰줌
   useEffect(() => {
@@ -378,28 +415,29 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
     const idx = slides.findIndex((s) => s.id === hoveredItem);
     if (idx < 0) return;
     setHeroTransition(true);
-    setHeroIndex(idx + 1); // real->heroIndex(클론 포함)
-  }, [hoveredItem, slides]);
+    setHeroIndex(idx + 1);
+    resetAuto();
+  }, [hoveredItem, slides, resetAuto]);
 
-  // ✅ selectedProjectId로 열 때도 heroIndex 싱크
+  // ✅ open project + sync hero
   const openProject = useCallback(
     (id) => {
+      resetAuto();
       setSelectedProjectId(id);
+
       const idx = slides.findIndex((s) => s.id === id);
       if (idx >= 0) {
         setHeroTransition(true);
         setHeroIndex(idx + 1);
       }
+
       setIsModalOpen(true);
     },
-    [slides, setIsModalOpen]
+    [slides, setIsModalOpen, resetAuto]
   );
 
   return (
-    <div
-      ref={sectionRef}
-      className={`project-section ${isVisible ? 'is-visible' : ''}`}
-    >
+    <div ref={sectionRef} className={`project-section ${isVisible ? 'is-visible' : ''}`}>
       {/* Hero */}
       <div
         className="hero-section"
@@ -413,18 +451,12 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
           <div
             className={`hero-track ${heroTransition ? 'is-animating' : ''}`}
             ref={heroTrackRef}
-            style={{
-              transform: `translate3d(${-heroIndex * 100}%, 0, 0)`,
-            }}
+            style={{ transform: `translate3d(${-heroIndex * 100}%, 0, 0)` }}
             onTransitionEnd={onHeroTransitionEnd}
           >
             {heroSlides.map((s, i) => (
               <div className="hero-slide" key={`${s.id}-${i}`}>
-                <img
-                  src={s.image}
-                  alt={`${s.title} Background`}
-                  draggable="false"
-                />
+                <img src={s.image} alt={`${s.title} Background`} draggable="false" />
               </div>
             ))}
           </div>
@@ -472,9 +504,7 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
           {slides.map((item) => (
             <div
               key={item.id}
-              className={`project-card ${
-                hoveredItem === item.id ? 'active' : ''
-              }`}
+              className={`project-card ${hoveredItem === item.id ? 'active' : ''}`}
               onMouseEnter={() => setHoveredItem(item.id)}
               onMouseLeave={() => setHoveredItem(null)}
               onClick={() => openProject(item.id)}
@@ -502,9 +532,9 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
         </div>
 
         <p
-          className={`swipe-hint ${
-            swipeDir === 'left' ? 'is-left' : 'is-right'
-          } ${!hasSwiped ? 'is-nudge' : ''}`}
+          className={`swipe-hint ${swipeDir === 'left' ? 'is-left' : 'is-right'} ${
+            !hasSwiped ? 'is-nudge' : ''
+          }`}
           aria-hidden="true"
         >
           {swipeDir === 'left' ? (
@@ -513,8 +543,7 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
             </>
           ) : (
             <>
-              Swipe to explore more{' '}
-              <span className="swipe-hint__arrow">→</span>
+              Swipe to explore more <span className="swipe-hint__arrow">→</span>
             </>
           )}
         </p>
@@ -527,6 +556,7 @@ const ProjectSection = ({ isActive, setIsModalOpen, isModalOpen }) => {
           setSelectedProjectId(null);
           setHoveredItem(null);
           setIsModalOpen(false);
+          resetAuto();
         }}
       />
     </div>
