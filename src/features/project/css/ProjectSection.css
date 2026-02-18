@@ -389,13 +389,14 @@
   ================================ */
   .hero-section {
     width: calc(100vw - (var(--px) * 2));
+    height: auto;
     margin: var(--px) auto 0;
 
     border-radius: 18px;
     overflow: hidden;
     position: relative;
 
-    aspect-ratio: 5 / 5.5;
+    aspect-ratio: 5 / 6;
   }
 
   .hero-background,
@@ -494,12 +495,14 @@
     background: #050507;
     padding: 12px 0 18px;
     align-items: stretch;
+
+    height: auto;
   }
 
   .section-title {
     width: auto;
     max-width: none;
-    margin: 6px var(--px) 8px;
+    margin: 8px var(--px) 10px;
     font-size: 1.15rem;
   }
 
