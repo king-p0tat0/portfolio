@@ -381,7 +381,7 @@
     overflow: hidden;
 
     display: grid;
-    grid-template-rows: 6fr 4fr;
+    grid-template-rows: 6.5fr 4fr;
   }
 
   /* ================================
@@ -396,7 +396,7 @@
     overflow: hidden;
     position: relative;
 
-    aspect-ratio: 5 / 5.5;
+    aspect-ratio: 5 / 6;
   }
 
   .hero-background,
@@ -500,8 +500,8 @@
   .section-title {
     width: auto;
     max-width: none;
-    margin: 6px var(--px) 8px;
-    font-size: 1.15rem;
+    margin: 8px var(--px) 10px;
+    font-size: 1.2rem;
   }
 
   .project-grid {

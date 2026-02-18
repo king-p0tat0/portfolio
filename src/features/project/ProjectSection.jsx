@@ -43,7 +43,8 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
   const [swipeDir, setSwipeDir] = useState('right');
   const [hasSwiped, setHasSwiped] = useState(false);
 
-  // ✅ hero refs
+  // ✅ hero refs (IMPORTANT)
+  // heroViewportRef는 이제 "스와이프 영역(이미지 캐러셀)"에만 붙인다.
   const heroViewportRef = useRef(null);
   const heroTrackRef = useRef(null);
 
@@ -413,6 +414,7 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
 
       track.style.transform = '';
 
+      // ✅ 클릭/탭처럼 끝난 케이스: 원래 인덱스로 복귀 + auto 재개
       if (st.lockedAxis !== 'x' || !st.moved) {
         setHeroTransition(true);
         setHeroIndex(st.baseIndex);
@@ -482,7 +484,7 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
     [slides, setIsModalOpen, scheduleAutoRestart]
   );
 
-  // ✅ PC에는 핸들러 자체를 안 붙임 (완전 차단)
+  // ✅ 포인터 핸들러는 "이미지 캐러셀"에만 붙임 (버튼 탭 먹히는 문제 해결)
   const heroPointerHandlers = useMemo(() => {
     if (!isTouchOnly) return {};
     return {
@@ -496,8 +498,15 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
   return (
     <div ref={sectionRef} className={`project-section ${isVisible ? 'is-visible' : ''}`}>
       {/* Hero */}
-      <div className="hero-section" ref={heroViewportRef} {...heroPointerHandlers}>
-        <div className="hero-background hero-carousel">
+      <div className="hero-section">
+        {/* ✅ swipe 영역 = hero-background(hero-carousel)만 */}
+        <div
+          className="hero-background hero-carousel"
+          ref={heroViewportRef}
+          {...heroPointerHandlers}
+          // (선택) 세로 스크롤은 허용, 가로 드래그는 우리가 처리: iOS에서 안정적
+          style={{ touchAction: 'pan-y' }}
+        >
           <div
             className={`hero-track ${heroTransition ? 'is-animating' : ''}`}
             ref={heroTrackRef}
@@ -514,6 +523,7 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
           <div className="hero-overlay" />
         </div>
 
+        {/* ✅ content 영역(버튼 포함)은 스와이프 영향 X */}
         <div className="hero-content">
           <div className="hero-info">
             <h1 className="hero-title">{currentContent.title}</h1>
@@ -582,9 +592,7 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
         </div>
 
         <p
-          className={`swipe-hint ${swipeDir === 'left' ? 'is-left' : 'is-right'} ${
-            !hasSwiped ? 'is-nudge' : ''
-          }`}
+          className={`swipe-hint ${swipeDir === 'left' ? 'is-left' : 'is-right'} ${!hasSwiped ? 'is-nudge' : ''}`}
           aria-hidden="true"
         >
           {swipeDir === 'left' ? (
