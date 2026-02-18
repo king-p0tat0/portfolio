@@ -14,17 +14,14 @@ const AUTO_INTERVAL = 4500;
 const AUTO_RESTART_DELAY = 300;
 
 const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
-  // ✅ ONLY mobile/touch: enable swipe/drag
-  const isTouchOnly = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-
-    // 모바일/태블릿 터치 대부분: hover none + coarse pointer
+  // ✅ Touch detect (mount 후 재계산: iOS/실기기 오판정 방지)
+  const [isTouchOnly, setIsTouchOnly] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
     const coarse = window.matchMedia?.('(hover: none) and (pointer: coarse)')?.matches ?? false;
-
-    // iPad 등 예외 케이스: 터치 포인트 존재
     const hasTouchPoints = (navigator.maxTouchPoints ?? 0) > 0;
-
-    return coarse || hasTouchPoints;
+    const hasOntouch = 'ontouchstart' in window;
+    setIsTouchOnly(coarse || hasTouchPoints || hasOntouch);
   }, []);
 
   const sectionRef = useRef(null);
@@ -37,14 +34,15 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
   const [heroTransition, setHeroTransition] = useState(true);
 
   const [selectedProjectId, setSelectedProjectId] = useState(null);
+
+  // ✅ PC에서만 hover로 auto pause (모바일은 focus 고착 이슈 때문에 사용 X)
   const [isHeroBtnHovered, setIsHeroBtnHovered] = useState(false);
 
   const gridRef = useRef(null);
   const [swipeDir, setSwipeDir] = useState('right');
   const [hasSwiped, setHasSwiped] = useState(false);
 
-  // ✅ hero refs (IMPORTANT)
-  // heroViewportRef는 이제 "스와이프 영역(이미지 캐러셀)"에만 붙인다.
+  // ✅ hero refs
   const heroViewportRef = useRef(null);
   const heroTrackRef = useRef(null);
 
@@ -52,6 +50,7 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
   const dragRef = useRef({
     active: false,
     pointerId: null,
+    touchId: null,
     startX: 0,
     startY: 0,
     dx: 0,
@@ -63,17 +62,17 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
     lockedAxis: null, // 'x' | 'y' | null
   });
 
-  // ✅ auto slide (single source of truth)
+  // ✅ auto slide
   const autoTimerRef = useRef(null);
   const restartTimeoutRef = useRef(null);
 
-  // ✅ “transition 중 연타” 방지용
+  // ✅ transition 중 연타/중복 tick 방지
   const animatingRef = useRef(false);
 
-  // ✅ 드래그/스와이프 후, transition이 끝난 다음에 auto 재시작
+  // ✅ 드래그/스와이프 후 auto 재시작 지연
   const pendingAutoRestartRef = useRef(false);
 
-  // ✅ slides 고정
+  // ✅ slides
   const slides = useMemo(
     () => [
       {
@@ -179,22 +178,35 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
   const canAuto = useCallback(() => {
     if (isModalOpen) return false;
     if (hoveredItem !== null) return false;
-    if (isHeroBtnHovered) return false;
+
+    // ✅ 모바일은 focus 고착 때문에 hover/focus 기반 pause 금지
+    if (!isTouchOnly && isHeroBtnHovered) return false;
+
     if (dragRef.current.active) return false;
     if (animatingRef.current) return false;
     return true;
-  }, [isModalOpen, hoveredItem, isHeroBtnHovered]);
+  }, [isModalOpen, hoveredItem, isHeroBtnHovered, isTouchOnly]);
 
   const startAuto = useCallback(() => {
     if (!canAuto()) return;
 
     stopAuto();
     autoTimerRef.current = window.setInterval(() => {
+      const n = slides.length;
+      if (n === 0) return;
+
+      // ✅ 애니메이션 중이면 tick 무시 (인덱스 튐 방지)
+      if (animatingRef.current) return;
+
       animatingRef.current = true;
       setHeroTransition(true);
-      setHeroIndex((prev) => prev + 1);
+      setHeroIndex((prev) => {
+        const next = prev + 1;
+        // ✅ n+1(끝 클론)까지만 허용
+        return next > n + 1 ? n + 1 : next;
+      });
     }, AUTO_INTERVAL);
-  }, [canAuto, stopAuto]);
+  }, [canAuto, stopAuto, slides.length]);
 
   const scheduleAutoRestart = useCallback(() => {
     stopAuto();
@@ -263,7 +275,8 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
       const n = slides.length;
       if (n === 0) return;
 
-      if (heroIndex === 0) {
+      // ✅ 범위 보정: 인덱스 튀어도 무조건 복구
+      if (heroIndex <= 0) {
         setHeroTransition(false);
         setHeroIndex(n);
         animatingRef.current = false;
@@ -275,7 +288,7 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
         return;
       }
 
-      if (heroIndex === n + 1) {
+      if (heroIndex >= n + 1) {
         setHeroTransition(false);
         setHeroIndex(1);
         animatingRef.current = false;
@@ -305,7 +318,7 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
   }, [heroTransition]);
 
   // ----------------------------
-  // Drag handlers (Touch only)
+  // Drag helpers (Pointer + Touch)
   // ----------------------------
   const clearRaf = useCallback(() => {
     const st = dragRef.current;
@@ -334,24 +347,21 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
     });
   }, [applyDragTransform]);
 
-  const onHeroPointerDown = useCallback(
-    (e) => {
-      // ✅ PC(마우스) 및 비터치 환경에서는 스와이프 비활성
-      if (!isTouchOnly || e.pointerType !== 'touch') return;
-
+  const beginDrag = useCallback(
+    (clientX, clientY, idForCapture = null, isTouch = false) => {
       const v = heroViewportRef.current;
-      const track = heroTrackRef.current;
-      if (!v || !track) return;
-
-      if (animatingRef.current) return;
+      if (!v) return false;
+      if (animatingRef.current) return false;
 
       const rect = v.getBoundingClientRect();
       const st = dragRef.current;
 
       st.active = true;
-      st.pointerId = e.pointerId;
-      st.startX = e.clientX;
-      st.startY = e.clientY;
+      st.pointerId = isTouch ? null : idForCapture;
+      st.touchId = isTouch ? idForCapture : null;
+
+      st.startX = clientX;
+      st.startY = clientY;
       st.dx = 0;
       st.dy = 0;
       st.width = rect.width || 1;
@@ -360,97 +370,191 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
       st.lockedAxis = null;
 
       setHeroTransition(false);
-      v.setPointerCapture?.(e.pointerId);
       clearRaf();
-
       stopAuto();
+      return true;
     },
-    [heroIndex, clearRaf, stopAuto, isTouchOnly]
+    [heroIndex, clearRaf, stopAuto]
   );
 
-  const onHeroPointerMove = useCallback(
-    (e) => {
-      // ✅ PC에서는 아예 무시
-      if (!isTouchOnly || e.pointerType !== 'touch') return;
-
-      const v = heroViewportRef.current;
-      if (!v) return;
-
+  const moveDrag = useCallback(
+    (clientX, clientY) => {
       const st = dragRef.current;
-      if (!st.active || st.pointerId !== e.pointerId) return;
+      if (!st.active) return { locked: null };
 
-      st.dx = e.clientX - st.startX;
-      st.dy = e.clientY - st.startY;
+      st.dx = clientX - st.startX;
+      st.dy = clientY - st.startY;
 
       const ax = Math.abs(st.dx);
       const ay = Math.abs(st.dy);
 
       if (!st.lockedAxis) {
-        if (ax < 6 && ay < 6) return;
+        if (ax < 6 && ay < 6) return { locked: null };
         st.lockedAxis = ax >= ay ? 'x' : 'y';
       }
 
-      if (st.lockedAxis === 'y') return;
+      if (st.lockedAxis === 'y') return { locked: 'y' };
 
       st.moved = true;
       queueApply();
+      return { locked: 'x' };
     },
-    [queueApply, isTouchOnly]
+    [queueApply]
   );
 
-  const finishHeroDrag = useCallback(
-    (e) => {
-      // ✅ PC에서는 아예 무시
-      if (!isTouchOnly || e.pointerType !== 'touch') return;
+  const endDrag = useCallback(() => {
+    const track = heroTrackRef.current;
+    if (!track) return;
 
-      const v = heroViewportRef.current;
-      const track = heroTrackRef.current;
-      if (!v || !track) return;
+    const st = dragRef.current;
+    if (!st.active) return;
 
-      const st = dragRef.current;
-      if (!st.active || st.pointerId !== e.pointerId) return;
+    st.active = false;
+    track.style.transform = '';
 
-      st.active = false;
-
-      track.style.transform = '';
-
-      // ✅ 클릭/탭처럼 끝난 케이스: 원래 인덱스로 복귀 + auto 재개
-      if (st.lockedAxis !== 'x' || !st.moved) {
-        setHeroTransition(true);
-        setHeroIndex(st.baseIndex);
-
-        st.pointerId = null;
-        clearRaf();
-
-        scheduleAutoRestart();
-        return;
-      }
-
-      const threshold = Math.min(80, st.width * 0.18);
-      let next = st.baseIndex;
-
-      if (st.dx <= -threshold) next = st.baseIndex + 1;
-      else if (st.dx >= threshold) next = st.baseIndex - 1;
-
+    // 탭/세로스크롤
+    if (st.lockedAxis !== 'x' || !st.moved) {
       setHeroTransition(true);
-
-      if (next !== st.baseIndex) {
-        animatingRef.current = true;
-        pendingAutoRestartRef.current = true;
-      } else {
-        scheduleAutoRestart();
-      }
-
-      setHeroIndex(next);
+      setHeroIndex(st.baseIndex);
 
       st.pointerId = null;
+      st.touchId = null;
       clearRaf();
+
+      scheduleAutoRestart();
+      return;
+    }
+
+    const threshold = Math.min(80, st.width * 0.18);
+    let next = st.baseIndex;
+
+    if (st.dx <= -threshold) next = st.baseIndex + 1;
+    else if (st.dx >= threshold) next = st.baseIndex - 1;
+
+    setHeroTransition(true);
+
+    if (next !== st.baseIndex) {
+      animatingRef.current = true;
+      pendingAutoRestartRef.current = true;
+    } else {
+      scheduleAutoRestart();
+    }
+
+    setHeroIndex(next);
+
+    st.pointerId = null;
+    st.touchId = null;
+    clearRaf();
+  }, [clearRaf, scheduleAutoRestart]);
+
+  // ----------------------------
+  // Pointer handlers (터치 환경에서만 활성)
+  // ----------------------------
+  const onHeroPointerDown = useCallback(
+    (e) => {
+      if (!isTouchOnly) return;
+
+      const v = heroViewportRef.current;
+      if (!v) return;
+
+      const ok = beginDrag(e.clientX, e.clientY, e.pointerId, false);
+      if (!ok) return;
+
+      v.setPointerCapture?.(e.pointerId);
     },
-    [clearRaf, scheduleAutoRestart, isTouchOnly]
+    [isTouchOnly, beginDrag]
   );
 
-  const onHeroPointerUp = useCallback((e) => finishHeroDrag(e), [finishHeroDrag]);
-  const onHeroPointerCancel = useCallback((e) => finishHeroDrag(e), [finishHeroDrag]);
+  const onHeroPointerMove = useCallback(
+    (e) => {
+      if (!isTouchOnly) return;
+
+      const st = dragRef.current;
+      if (!st.active) return;
+      if (st.pointerId == null || st.pointerId !== e.pointerId) return;
+
+      moveDrag(e.clientX, e.clientY);
+    },
+    [isTouchOnly, moveDrag]
+  );
+
+  const onHeroPointerUp = useCallback(
+    (e) => {
+      if (!isTouchOnly) return;
+
+      const st = dragRef.current;
+      if (!st.active) return;
+      if (st.pointerId == null || st.pointerId !== e.pointerId) return;
+
+      endDrag();
+    },
+    [isTouchOnly, endDrag]
+  );
+
+  const onHeroPointerCancel = useCallback(
+    (e) => {
+      if (!isTouchOnly) return;
+
+      const st = dragRef.current;
+      if (!st.active) return;
+      if (st.pointerId == null || st.pointerId !== e.pointerId) return;
+
+      endDrag();
+    },
+    [isTouchOnly, endDrag]
+  );
+
+  // ✅ iOS/실기기 안정화: native touch listener (passive:false 강제)
+  useEffect(() => {
+    const el = heroViewportRef.current;
+    if (!el) return;
+    if (!isTouchOnly) return;
+
+    const handleTouchStart = (e) => {
+      const t = e.touches?.[0];
+      if (!t) return;
+      beginDrag(t.clientX, t.clientY, t.identifier, true);
+    };
+
+    const handleTouchMove = (e) => {
+      const st = dragRef.current;
+      if (!st.active) return;
+
+      const touchId = st.touchId;
+      const list = Array.from(e.touches || []);
+      const t = list.find((x) => x.identifier === touchId) || list[0];
+      if (!t) return;
+
+      const { locked } = moveDrag(t.clientX, t.clientY);
+
+      // ✅ 가로로 잠기면 스크롤/제스처를 막아야 스와이프가 안 씹힘
+      if (locked === 'x') e.preventDefault();
+    };
+
+    const handleTouchEnd = (e) => {
+      const st = dragRef.current;
+      if (!st.active) return;
+
+      const stillActive = Array.from(e.touches || []).some((x) => x.identifier === st.touchId);
+      if (stillActive) return;
+
+      endDrag();
+    };
+
+    const handleTouchCancel = () => endDrag();
+
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false }); // 🔥 핵심
+    el.addEventListener('touchend', handleTouchEnd, { passive: true });
+    el.addEventListener('touchcancel', handleTouchCancel, { passive: true });
+
+    return () => {
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('touchend', handleTouchEnd);
+      el.removeEventListener('touchcancel', handleTouchCancel);
+    };
+  }, [isTouchOnly, beginDrag, moveDrag, endDrag]);
 
   // ----------------------------
   // Hover sync
@@ -484,7 +588,7 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
     [slides, setIsModalOpen, scheduleAutoRestart]
   );
 
-  // ✅ 포인터 핸들러는 "이미지 캐러셀"에만 붙임 (버튼 탭 먹히는 문제 해결)
+  // ✅ 포인터 핸들러는 hero-carousel(이미지 영역)에만
   const heroPointerHandlers = useMemo(() => {
     if (!isTouchOnly) return {};
     return {
@@ -503,9 +607,9 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
         <div
           className="hero-background hero-carousel"
           ref={heroViewportRef}
-          {...heroPointerHandlers}
-          // (선택) 세로 스크롤은 허용, 가로 드래그는 우리가 처리: iOS에서 안정적
+          // 세로 스크롤 허용, 가로 드래그는 우리가 처리
           style={{ touchAction: 'pan-y' }}
+          {...heroPointerHandlers}
         >
           <div
             className={`hero-track ${heroTransition ? 'is-animating' : ''}`}
@@ -540,10 +644,14 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
               <button
                 type="button"
                 className="hero-btn hero-btn-primary"
-                onMouseEnter={() => setIsHeroBtnHovered(true)}
-                onMouseLeave={() => setIsHeroBtnHovered(false)}
-                onFocus={() => setIsHeroBtnHovered(true)}
-                onBlur={() => setIsHeroBtnHovered(false)}
+                // ✅ PC에서만 hover로 auto pause
+                onMouseEnter={() => {
+                  if (!isTouchOnly) setIsHeroBtnHovered(true);
+                }}
+                onMouseLeave={() => {
+                  if (!isTouchOnly) setIsHeroBtnHovered(false);
+                }}
+                // ✅ 모바일 focus 고착 방지: focus/blur로 pause 하지 않음
                 onClick={() => openProject(currentContent.id)}
               >
                 <span className="hero-btn-icon" aria-hidden>
@@ -614,6 +722,12 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
           setSelectedProjectId(null);
           setHoveredItem(null);
           setIsModalOpen(false);
+
+          // ✅ 모바일에서 버튼 focus가 남아서 auto가 멈추는 케이스 방지
+          if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+          }
+
           scheduleAutoRestart();
         }}
       />

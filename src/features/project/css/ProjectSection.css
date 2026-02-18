@@ -493,7 +493,7 @@
   ================================ */
   .project-grid-section {
     background: #050507;
-    padding: 12px 0 18px;
+    padding: 18px 0;
     align-items: stretch;
   }
 
@@ -823,6 +823,9 @@
 .hero-background.hero-carousel {
   overflow: hidden;
 }
+
+.hero-carousel { -webkit-user-select: none; user-select: none; }
+.hero-carousel img { -webkit-user-drag: none; }
 
 .hero-track {
   height: 100%;
