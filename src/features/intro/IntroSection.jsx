@@ -7,7 +7,7 @@ const IntroSection = () => {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 767);
 
   const titleText = useMemo(
-    () => (isMobile ? '보이는 것 이상의\n가치를 만들다' : '보이는 것 이상의 가치를 만들다'),
+    () => (isMobile ? 'test 보이는 것 이상의\n가치를 만들다' : '보이는 것 이상의 가치를 만들다'),
     [isMobile]
   );
 
