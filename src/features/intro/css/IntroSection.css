@@ -216,7 +216,7 @@ body {
 /* 태블릿 이하 */
 @media (max-width: 768px) {
   .main-content {
-    top: 50%;
+    top: 47% !important;
     width: 90vw;
   }
 
@@ -226,7 +226,7 @@ body {
     transform: none;
     line-height: 1.35;
 
-    color: #2A4A6A;
+    margin-bottom: 0 !important;
   }
 
   .main-subtitle {
