@@ -19,7 +19,8 @@
   background-color: var(--bg-dark);
   color: var(--text-white);
   font-family: 'Helvetica Neue', Arial, sans-serif;
-  width: 100vw;
+
+  width: 100%;
   height: 100vh;
   overflow: hidden;
 }
@@ -35,7 +36,7 @@
 }
 
 /* ================================
-   Hero Section
+   Hero Section (Base)
 ================================ */
 .hero-section {
   position: relative;
@@ -44,18 +45,27 @@
   overflow: hidden;
 }
 
+/* common layers */
 .hero-background,
 .hero-overlay {
   position: absolute;
   inset: 0;
 }
 
+.hero-overlay {
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* base image */
 .hero-background img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
 }
 
+/* PC gradient */
 .hero-overlay {
   background: linear-gradient(
     to right,
@@ -63,9 +73,9 @@
     rgba(0, 0, 0, 0.5) 80%,
     transparent 100%
   );
-  z-index: 2;
 }
 
+/* content */
 .hero-content {
   position: relative;
   z-index: 3;
@@ -133,38 +143,21 @@
 /* ================================
    Fade Animations
 ================================ */
-.fade-in {
-  animation: fadeIn 0.6s ease-in-out forwards;
-}
-
-.fade-out {
-  animation: fadeOut 0.3s ease-in-out forwards;
-}
+.fade-in { animation: fadeIn 0.6s ease-in-out forwards; }
+.fade-out { animation: fadeOut 0.3s ease-in-out forwards; }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes fadeOut {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(-30px);
-  }
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-30px); }
 }
 
 /* ================================
-   Project Grid Section
+   Project Grid Section (PC base)
 ================================ */
 .project-grid-section {
   height: 40vh;
@@ -195,7 +188,7 @@
 }
 
 /* ================================
-   Project Card
+   Project Card (PC base)
 ================================ */
 .project-card {
   position: relative;
@@ -233,7 +226,7 @@
 }
 
 /* ================================
-   Card Overlay
+   Card Overlay (PC hover)
 ================================ */
 .card-overlay {
   position: absolute;
@@ -243,6 +236,7 @@
     rgba(0, 0, 0, 0.9),
     rgba(0, 0, 0, 0.3)
   );
+
   display: flex;
   align-items: flex-end;
   padding: 1rem;
@@ -250,6 +244,7 @@
   opacity: 0;
   transform: translateY(20px);
   transition: var(--transition-fast);
+
   pointer-events: none;
 }
 
@@ -301,11 +296,11 @@
   transform: translateX(2px);
 }
 
-.view-more::after {
-  content: "→";
-}
+.view-more::after { content: "→"; }
 
-/* add detail button */
+/* ================================
+   CTA Button (shared)
+================================ */
 .hero-cta {
   margin-top: 22px;
   display: flex;
@@ -345,9 +340,7 @@
   border-color: rgba(255, 255, 255, 0.22);
 }
 
-.hero-btn:active {
-  transform: translateY(0);
-}
+.hero-btn:active { transform: translateY(0); }
 
 .hero-btn-icon {
   width: 24px;
@@ -363,8 +356,46 @@
   font-size: 16px;
 }
 
-.swipe-hint {
-  display: none;
+/* hint default hidden (PC) */
+.swipe-hint { display: none; }
+
+/* ================================
+   HERO Infinite Carousel (shared)
+================================ */
+.hero-carousel {
+  overflow: hidden;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.hero-carousel img { -webkit-user-drag: none; }
+
+.hero-track {
+  height: 100%;
+  display: flex;
+  will-change: transform;
+}
+
+.hero-track.is-animating {
+  transition: transform 420ms cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.hero-slide {
+  flex: 0 0 100%;
+  height: 100%;
+  position: relative;
+}
+
+.hero-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
 
 /* =========================================================
@@ -384,9 +415,7 @@
     grid-template-rows: 6.5fr 4fr;
   }
 
-  /* ================================
-     HERO: centered card (not cropped-feel)
-  ================================ */
+  /* HERO: centered card */
   .hero-section {
     width: calc(100vw - (var(--px) * 2));
     height: auto;
@@ -401,18 +430,12 @@
 
   .hero-background,
   .hero-overlay {
-    position: absolute;
-    inset: 0;
     border-radius: inherit;
     overflow: hidden;
   }
 
+  /* keep image clean on mobile */
   .hero-background img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-
     filter: none !important;
     opacity: 1 !important;
     transform: none !important;
@@ -420,7 +443,6 @@
 
   /* gradient only towards bottom */
   .hero-overlay {
-    z-index: 2;
     background: linear-gradient(
       to bottom,
       rgba(0, 0, 0, 0.02) 0%,
@@ -432,9 +454,6 @@
 
   /* title/subtitle/cta bottom-center */
   .hero-content {
-    position: relative;
-    z-index: 3;
-
     height: 100%;
     padding: 18px;
 
@@ -442,6 +461,15 @@
     align-items: flex-end;
     justify-content: center;
     text-align: center;
+
+    /* ✅ allow swipe through content layer */
+    pointer-events: none;
+  }
+
+  .hero-content .hero-btn,
+  .hero-content button,
+  .hero-content a {
+    pointer-events: auto;
   }
 
   .hero-info {
@@ -474,12 +502,10 @@
 
   .hero-cta {
     justify-content: center;
-    margin: 0; /* keep deterministic */
+    margin: 0;
   }
 
-  .hero-btn-icon {
-    display: none;
-  }
+  .hero-btn-icon { display: none; }
 
   .hero-btn {
     padding: 12px 18px;
@@ -488,9 +514,7 @@
     background-color: #E40912;
   }
 
-  /* ================================
-     Crafted Works: horizontal scroll (swipe)
-  ================================ */
+  /* Crafted Works: horizontal scroll (swipe) */
   .project-grid-section {
     background: #050507;
     padding: 20px 0 18px;
@@ -500,7 +524,7 @@
   .section-title {
     width: auto;
     max-width: none;
-    margin: 12px var(--px) 14px;
+    margin: 16px var(--px) 12px;
     font-size: 1.2rem;
   }
 
@@ -519,9 +543,7 @@
     scrollbar-width: none;
   }
 
-  .project-grid::-webkit-scrollbar {
-    display: none;
-  }
+  .project-grid::-webkit-scrollbar { display: none; }
 
   .project-card {
     flex: 0 0 auto;
@@ -529,9 +551,7 @@
     scroll-snap-align: start;
   }
 
-  .card-overlay {
-    display: none;
-  }
+  .card-overlay { display: none; }
 
   .project-card:hover,
   .project-card:hover .card-image img {
@@ -566,23 +586,19 @@
     transition: opacity 200ms ease, transform 200ms ease;
   }
 
-  .swipe-hint.is-right .swipe-hint__arrow {
-    transform: translateY(-1px) translateX(2px);
-  }
+  .swipe-hint.is-right .swipe-hint__arrow { transform: translateY(-1px) translateX(2px); }
+  .swipe-hint.is-left  .swipe-hint__arrow { transform: translateY(-1px) translateX(-2px); }
+  .swipe-hint.is-left { color: rgba(255, 255, 255, 0.72); }
 
-  .swipe-hint.is-left .swipe-hint__arrow {
-    transform: translateY(-1px) translateX(-2px);
-  }
-
-  .swipe-hint.is-left {
-    color: rgba(255, 255, 255, 0.72);
+  /* optional perf hints only on mobile */
+  .hero-slide img {
+    backface-visibility: hidden;
+    transform: translateZ(0);
   }
 }
 
 /* =========================================================
    Mobile LANDSCAPE (touch + low height)
-   - stacked layout: Hero(top) / Carousel(bottom)
-   - keeps hero big + avoids ugly vertical list
 ========================================================= */
 @media (orientation: landscape) and (max-height: 520px) and (pointer: coarse) {
   .project-section {
@@ -614,31 +630,23 @@
     overflow: hidden;
     position: relative;
 
-    /* landscape에선 세로 카드 비율 제거 */
     aspect-ratio: auto;
   }
 
   .hero-background,
   .hero-overlay {
-    position: absolute;
-    inset: 0;
     border-radius: inherit;
     overflow: hidden;
   }
 
   .hero-background img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
     filter: none !important;
     opacity: 1 !important;
     transform: none !important;
   }
 
-  /* 가로모드: 좌측 하단이 더 고급짐 (center 정렬은 답답해 보임) */
+  /* landscape gradient */
   .hero-overlay {
-    z-index: 2;
     background: linear-gradient(
       to right,
       rgba(0, 0, 0, 0.82) 0%,
@@ -649,9 +657,6 @@
   }
 
   .hero-content {
-    position: relative;
-    z-index: 3;
-
     height: 100%;
     padding: 14px;
 
@@ -659,6 +664,16 @@
     align-items: flex-end;
     justify-content: flex-start;
     text-align: left;
+
+    /* ✅ (선택) 가로모드에서도 swipe가 최우선이면 켜기
+       - 버튼 클릭은 아래 rule로 복구됨 */
+    pointer-events: none;
+  }
+
+  .hero-content .hero-btn,
+  .hero-content button,
+  .hero-content a {
+    pointer-events: auto;
   }
 
   .hero-info {
@@ -680,7 +695,7 @@
     text-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
   }
 
-  /* ✅ 가로모드에서 설명을 "짧게 2줄"만 보여주면 확 고급져짐 */
+  /* show short description (2 lines) */
   .hero-description {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -696,10 +711,9 @@
     text-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
   }
 
-  /* year/type는 숨기지 말고 "작게"만 */
+  /* ✅ 실제 코드가 숨기고 있으니 주석도 정합성 맞춤 */
   .hero-meta,
-  .hero-type,
-   .hero-subtitle {
+  .hero-type {
     display: none;
   }
 
@@ -709,15 +723,12 @@
     justify-content: flex-start;
   }
 
-  .hero-btn-icon {
-    display: none;
-  }
+  .hero-btn-icon { display: none; }
 
   .hero-btn {
     padding: 10px 14px;
     font-size: 14px;
     border-radius: 10px;
-
     background-color: #E40912;
   }
 
@@ -748,7 +759,6 @@
     text-align: left;
   }
 
-  /* ✅ 세로 리스트 → 가로 캐러셀로 (이게 핵심) */
   .project-grid {
     flex: 1;
     display: flex;
@@ -765,35 +775,25 @@
     scrollbar-width: none;
   }
 
-  .project-grid::-webkit-scrollbar {
-    display: none;
-  }
+  .project-grid::-webkit-scrollbar { display: none; }
 
   .project-card {
     flex: 0 0 auto;
-
     width: clamp(220px, 40vw, 320px);
 
     border-radius: 14px;
     scroll-snap-align: start;
   }
 
-  /* 카드 높이를 스트립에 맞추기 */
-  .card-image {
-    aspect-ratio: 16 / 9;
-  }
+  .card-image { aspect-ratio: 16 / 9; }
 
-  /* 모바일 터치에서는 overlay/hover 다 꺼두는 게 안정적 */
-  .card-overlay {
-    display: none;
-  }
+  .card-overlay { display: none; }
 
   .project-card:hover,
   .project-card:hover .card-image img {
     transform: none;
   }
 
-  /* 가로모드에서도 힌트는 짧게(선택) */
   .swipe-hint {
     display: flex;
     align-items: center;
@@ -816,53 +816,3 @@
     opacity: 0.75;
   }
 }
-
-/* ================================
-   HERO Infinite Carousel
-================================ */
-.hero-background.hero-carousel {
-  overflow: hidden;
-}
-
-.hero-carousel { -webkit-user-select: none; user-select: none; }
-.hero-carousel img { -webkit-user-drag: none; }
-
-.hero-track {
-  height: 100%;
-  display: flex;
-  will-change: transform;
-  transform: translate3d(-100%, 0, 0); /* 초기값(안전) */
-}
-
-.hero-track.is-animating {
-  transition: transform 420ms cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-.hero-slide {
-  flex: 0 0 100%;
-  height: 100%;
-  position: relative;
-}
-
-.hero-slide img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-
-  /* 드래그 시 이미지 선택/드래그 방지 느낌 */
-  user-select: none;
-  -webkit-user-drag: none;
-  pointer-events: none;
-}
-
-/* ✅ 터치에서 세로 스크롤 방해 최소화 */
-.hero-section {
-  touch-action: pan-y;
-}
-
-.hero-track { will-change: transform; }
-.hero-slide img { backface-visibility: hidden; transform: translateZ(0); }
-
-.hero-section { touch-action: pan-y; }
-

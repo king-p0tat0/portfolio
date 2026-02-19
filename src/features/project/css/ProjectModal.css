@@ -315,8 +315,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   :where(.carousel-btn, .zoom-nav):hover {
-    background: rgba(0,0,0,0.14);
-    border-color: rgba(0,0,0,0.22);
+    background: rgba(0, 0, 0, 0.28);
+    border-color: rgba(255, 255, 255, 0.22);
   }
 }
 
@@ -333,6 +333,11 @@
   border-radius: 14px;
   overflow: hidden;
   min-width: 0;
+}
+
+/* ✅ Mobile swipe carousel (stage clip) */
+.carousel-stage.is-swipe {
+  overflow: hidden;
 }
 
 /* 이미지 기준 중앙(세로) */
@@ -398,7 +403,6 @@
 
 /* =========================
    Zoom Modal (FIXED)
-   ✅ body portal로 올라가서 fixed 기준이 뷰포트로 잡힘 (치우침 해결)
 ========================= */
 .zoom-backdrop {
   position: fixed;
@@ -429,11 +433,8 @@
 .zoom-viewport {
   position: relative;
   width: 100%;
-
-  height: min(70vh, 580px);
-
+  height: min(70vh, 540px);
   overflow: hidden;
-
   border: none;
 }
 
@@ -445,37 +446,65 @@
   display: block;
 }
 
-/* Mobile scroller */
+/* =========================
+   Swipe Scroller Base (Carousel + Zoom)
+   ✅ 충돌/중복 제거 + iOS 안정화 버전
+========================= */
+/* carousel: transform track 방식 */
+.carousel-scroller {
+  display: flex;
+  width: 100%;
+  overflow: hidden;  /* 스크롤 없음 */
+}
+
+.carousel-track {
+  display: flex;
+  width: 100%;
+  transition: transform 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+}
+
+.carousel-track.is-dragging {
+  transition: none;
+}
+
+.carousel-slide {
+  flex: 0 0 100%;
+}
+
+/* zoom: 기존 scroll-snap 방식 유지 */
 .zoom-scroller {
   width: 100%;
-  height: 100%;
-
   display: flex;
-  overflow-x: auto;
-  overflow-y: hidden;
+
+  overflow: hidden;
 
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   scroll-snap-type: x mandatory;
-
-  padding: 0;
-  margin: 0;
-  scroll-padding: 0;
+  touch-action: pan-y;
+  scrollbar-width: none;
 }
 
 .zoom-scroller::-webkit-scrollbar {
   display: none;
 }
 
+/* slides: index 계산 안정화 */
+.carousel-slide,
 .zoom-slide {
   flex: 0 0 100%;
   height: 100%;
 
   scroll-snap-align: center;
-  scroll-snap-stop: always;
 
+  scroll-snap-stop: always;
+}
+
+/* zoom slide layout 유지 */
+.zoom-slide {
   display: grid;
   place-items: center;
-
   box-sizing: border-box;
 }
 
@@ -489,6 +518,15 @@
 
   padding: 10px;
   box-sizing: border-box;
+
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* 캐러셀 이미지도 드래그/선택 방지 */
+.carousel-scroller img {
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 /* Caption */
@@ -497,7 +535,6 @@
   color: rgba(255, 255, 255, 0.86);
   line-height: 1.45;
   font-size: 0.95rem;
-
   margin: 0;
 }
 
@@ -540,6 +577,13 @@
   color: #fff;
   font-size: 0.9rem;
   letter-spacing: -0.01em;
+
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.zoom-close:hover {
+  background-color: #2a2a2a;
 }
 
 /* =========================================================
@@ -558,6 +602,10 @@
     gap: 14px;
 
     padding: 18px 16px 16px;
+  }
+
+  .project-modal-header {
+    margin-bottom: 0;
   }
 
   .project-modal-body {
@@ -637,7 +685,7 @@
   }
 
   .zoom-viewport {
-    height: 22vh;
+    height: 24vh;
     border-radius: 14px;
   }
 
@@ -653,46 +701,41 @@
 ========================================================= */
 @media (orientation: landscape) and (max-height: 520px) and (pointer: coarse) {
 
-  /* ✅ header(title) 고정 + body만 스크롤 되게 */
   .project-modal-content {
     width: min(94vw, 900px);
     max-height: 92svh;
 
     display: grid;
-    grid-template-rows: auto 1fr; /* header + body */
+    grid-template-rows: auto 1fr;
     gap: 10px;
 
-    overflow: hidden; /* 전체 스크롤은 막고, 내부만 스크롤 */
+    overflow: hidden;
     padding: 14px;
   }
 
-  /* header는 그대로 보이게 (타이틀 포함) */
   .project-modal-header {
     margin-bottom: 0;
   }
 
-  /* ✅ body가 “남은 높이”를 정확히 받게 */
   .project-modal-body {
     min-height: 0;
     height: 100%;
-    overflow: hidden;  /* 스크롤은 panel에서 */
-    display: block;    /* 모바일은 PC 2col grid 말고 단일 wrapper */
+    overflow: hidden;
+    display: block;
     padding-right: 0;
   }
 
-  /* ✅ 탭(좌) + 패널(우) */
   .project-modal-mobileShell {
-    min-height: 0;   /* 핵심 */
-    height: 100%;    /* 핵심 */
+    min-height: 0;
+    height: 100%;
     display: grid;
     grid-template-columns: 170px 1fr;
     gap: 12px;
   }
 
-  /* ✅ 세로 탭: 자체 스크롤 가능 */
   .project-modal-tabs {
     min-height: 0;
-    height: 100%;x
+    height: 100%;
 
     position: sticky;
     top: 0;
@@ -721,10 +764,9 @@
     line-height: 1.15;
   }
 
-  /* ✅ 오른쪽 콘텐츠가 실제로 스크롤 되게 */
   .project-modal-panel.is-mobile {
-    min-height: 0;   /* 핵심 */
-    height: 100%;    /* 핵심 */
+    min-height: 0;
+    height: 100%;
 
     overflow-y: auto;
     overflow-x: hidden;
