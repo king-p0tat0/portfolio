@@ -7,6 +7,13 @@ import useIsMobileLike from '@/hooks/useIsMobileLike';
 const SWIPE_THRESHOLD_PX = 28;
 const SWIPE_VELOCITY_BOOST = 0.15;
 
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 3;
+
+function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
 function ProjectModal({ isOpen, project, onClose }) {
   const [activeItemKey, setActiveItemKey] = useState('');
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -27,6 +34,20 @@ function ProjectModal({ isOpen, project, onClose }) {
 
   const galleryStartIndexRef = useRef(0);
   const zoomStartIndexRef = useRef(0);
+
+  // ✅ Zoom pinch/pan transform
+  const [zoomTf, setZoomTf] = useState({ s: 1, x: 0, y: 0 });
+
+  const zoomPointersRef = useRef(new Map()); // pointerId -> {x,y}
+  const zoomGestureRef = useRef({
+    mode: null, // 'pinch' | 'pan' | null
+    startDist: 0,
+    startScale: 1,
+    startX: 0,
+    startY: 0,
+    lastX: 0,
+    lastY: 0,
+  });
 
   const outline = useMemo(() => project?.outline ?? [], [project]);
 
@@ -58,6 +79,7 @@ function ProjectModal({ isOpen, project, onClose }) {
     if (!root) return;
     const activeEl = root.querySelector(`.tab-item[data-key="${activeItemKey}"]`);
     if (!activeEl) return;
+
     const rootRect = root.getBoundingClientRect();
     const elRect = activeEl.getBoundingClientRect();
     const elLeft = elRect.left - rootRect.left + root.scrollLeft;
@@ -83,19 +105,14 @@ function ProjectModal({ isOpen, project, onClose }) {
     trackRef.current.style.transform = `translateX(-${idx * 100}%)`;
   }, []);
 
-  // ✅ NEW: 리셋할 땐 transition 없이 "즉시" 붙이기 (되돌아오는 모션 제거)
+  // ✅ 리셋할 땐 transition 없이 즉시 붙이기
   const snapGalleryToInstant = useCallback((idx) => {
     const el = trackRef.current;
     if (!el) return;
 
-    // is-dragging => CSS에서 transition: none;
-    el.classList.add('is-dragging');
+    el.classList.add('is-dragging'); // CSS에서 transition: none
     el.style.transform = `translateX(-${idx * 100}%)`;
-
-    // reflow 한 번 먹여서 "transition 없이 적용"을 확정
-    el.getBoundingClientRect();
-
-    // 다음 프레임부터는 원래 transition 복구
+    el.getBoundingClientRect(); // reflow
     requestAnimationFrame(() => {
       el.classList.remove('is-dragging');
     });
@@ -107,8 +124,21 @@ function ProjectModal({ isOpen, project, onClose }) {
     zoomTrackRef.current.style.transform = `translateX(-${idx * 100}%)`;
   }, []);
 
+  // ✅ zoom 이미지 바뀌면 transform 리셋
+  useEffect(() => {
+    if (!zoom) {
+      setZoomTf({ s: 1, x: 0, y: 0 });
+      zoomPointersRef.current.clear();
+      zoomGestureRef.current.mode = null;
+      return;
+    }
+    setZoomTf({ s: 1, x: 0, y: 0 });
+    zoomPointersRef.current.clear();
+    zoomGestureRef.current.mode = null;
+  }, [zoom?.index, zoom?.images]);
+
   // =========================================================
-  // ✅ 스와이프 이벤트
+  // ✅ 스와이프 이벤트 (모바일)
   // =========================================================
   useEffect(() => {
     if (!isMobile || !isOpen) return;
@@ -139,10 +169,12 @@ function ProjectModal({ isOpen, project, onClose }) {
       gState.dy = t.clientY - gState.y0;
       const ax = Math.abs(gState.dx);
       const ay = Math.abs(gState.dy);
+
       if (!gState.locked) {
         if (ax < 6 && ay < 6) return;
         gState.locked = ax >= ay ? 'x' : 'y';
       }
+
       if (gState.locked === 'x' && trackRef.current && galleryEl) {
         const offset = -(galleryStartIndexRef.current * 100);
         const dragOffset = (gState.dx / galleryEl.clientWidth) * 100;
@@ -174,10 +206,13 @@ function ProjectModal({ isOpen, project, onClose }) {
       snapGalleryTo(target);
     };
 
-    // ---------- Zoom ----------
+    // ---------- Zoom (Swipe) ----------
     const zState = { x0: 0, y0: 0, t0: 0, dx: 0, dy: 0, locked: null };
 
     const onZStart = (e) => {
+      // ✅ 확대 상태면 swipe 시작 자체를 무시 (pan/pinch가 담당)
+      if (zoomTf.s > 1) return;
+
       const t = e.touches?.[0];
       if (!t || !zoomEl) return;
       zState.x0 = t.clientX;
@@ -191,16 +226,22 @@ function ProjectModal({ isOpen, project, onClose }) {
     };
 
     const onZMove = (e) => {
+      if (zoomTf.s > 1) return;
+
       const t = e.touches?.[0];
       if (!t) return;
+
       zState.dx = t.clientX - zState.x0;
       zState.dy = t.clientY - zState.y0;
+
       const ax = Math.abs(zState.dx);
       const ay = Math.abs(zState.dy);
+
       if (!zState.locked) {
         if (ax < 6 && ay < 6) return;
         zState.locked = ax >= ay ? 'x' : 'y';
       }
+
       if (zState.locked === 'x' && zoomTrackRef.current && zoomEl) {
         const offset = -(zoomStartIndexRef.current * 100);
         const dragOffset = (zState.dx / zoomEl.clientWidth) * 100;
@@ -209,7 +250,10 @@ function ProjectModal({ isOpen, project, onClose }) {
     };
 
     const onZEnd = () => {
+      if (zoomTf.s > 1) return;
+
       if (!zoomEl) return;
+
       const dx = zState.dx;
       const dy = zState.dy;
       const dt = Math.max(1, performance.now() - zState.t0);
@@ -223,11 +267,13 @@ function ProjectModal({ isOpen, project, onClose }) {
       setZoom((z) => {
         if (!z?.images?.length) return z;
         const total = z.images.length;
+
         const pass = Math.abs(dx) >= SWIPE_THRESHOLD_PX || Math.abs(vx) >= SWIPE_VELOCITY_BOOST;
         const startIdx = Math.max(0, Math.min(zoomStartIndexRef.current, total - 1));
         const target = pass
           ? (dx < 0 ? Math.min(startIdx + 1, total - 1) : Math.max(startIdx - 1, 0))
           : startIdx;
+
         requestAnimationFrame(() => snapZoomTo(target));
         if (target === (z.index ?? 0)) return z;
         return { ...z, index: target };
@@ -243,6 +289,7 @@ function ProjectModal({ isOpen, project, onClose }) {
       galleryEl.addEventListener('touchend', onGEnd, optsOther);
       galleryEl.addEventListener('touchcancel', onGEnd, optsOther);
     }
+
     if (zoomEl) {
       zoomEl.addEventListener('touchstart', onZStart, optsOther);
       zoomEl.addEventListener('touchmove', onZMove, optsMove);
@@ -264,7 +311,7 @@ function ProjectModal({ isOpen, project, onClose }) {
         zoomEl.removeEventListener('touchcancel', onZEnd);
       }
     };
-  }, [isMobile, isOpen, activeItemKey, galleryIndex, zoom, snapGalleryTo, snapZoomTo]);
+  }, [isMobile, isOpen, activeItemKey, galleryIndex, zoom, zoomTf.s, snapGalleryTo, snapZoomTo]);
 
   // ✅ zoom state 바뀔 때 track 위치 동기화
   useEffect(() => {
@@ -278,9 +325,7 @@ function ProjectModal({ isOpen, project, onClose }) {
     if (panelRef.current) panelRef.current.scrollTo({ top: 0, behavior: 'auto' });
     if (bodyRef.current) bodyRef.current.scrollTo({ top: 0, behavior: 'auto' });
 
-    if (isMobile) {
-      snapGalleryToInstant(0);
-    }
+    if (isMobile) snapGalleryToInstant(0);
   }, [activeItemKey, isMobile, snapGalleryToInstant]);
 
   // ✅ 모달 열릴 때 리셋
@@ -289,9 +334,7 @@ function ProjectModal({ isOpen, project, onClose }) {
     setZoom(null);
     setGalleryIndex(0);
 
-    if (isMobile) {
-      snapGalleryToInstant(0);
-    }
+    if (isMobile) snapGalleryToInstant(0);
   }, [isOpen, project?.id, isMobile, snapGalleryToInstant]);
 
   const closeZoom = useCallback(() => setZoom(null), []);
@@ -458,11 +501,14 @@ function ProjectModal({ isOpen, project, onClose }) {
   const renderRich = (item) => {
     if (!item?.value) return null;
     const { intro, sections, gallery } = item.value;
+
     const introParagraphs = typeof intro === 'string'
       ? intro.split('\n').map((t) => t.trim()).filter(Boolean)
       : [];
+
     const hasSections = Array.isArray(sections) && sections.length > 0;
     const hasGallery = Array.isArray(gallery) && gallery.length > 0;
+
     if (introParagraphs.length === 0 && !hasSections && !hasGallery) return null;
 
     return (
@@ -475,6 +521,7 @@ function ProjectModal({ isOpen, project, onClose }) {
             ? sec.text.split('\n').map((t) => t.trim()).filter(Boolean)
             : [];
           const bullets = Array.isArray(sec?.bullets) && sec.bullets.length > 0 ? sec.bullets : null;
+
           return (
             <div key={i} className="rich-block">
               {title && <h4 className="rich-title">{title}</h4>}
@@ -523,6 +570,95 @@ function ProjectModal({ isOpen, project, onClose }) {
         return { ...z, index: (z.index + 1) % t };
       });
 
+    // ✅ Pointer pinch/pan handlers (mobile)
+    const onZoomPointerDown = (e) => {
+      e.stopPropagation();
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+
+      zoomPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      const pts = Array.from(zoomPointersRef.current.values());
+      const g = zoomGestureRef.current;
+
+      if (pts.length === 2) {
+        const [a, b] = pts;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        g.mode = 'pinch';
+        g.startDist = Math.hypot(dx, dy) || 1;
+        g.startScale = zoomTf.s;
+        g.startX = zoomTf.x;
+        g.startY = zoomTf.y;
+      } else if (pts.length === 1) {
+        g.mode = 'pan';
+        g.lastX = e.clientX;
+        g.lastY = e.clientY;
+      }
+    };
+
+    const onZoomPointerMove = (e) => {
+      if (!zoomPointersRef.current.has(e.pointerId)) return;
+      e.stopPropagation();
+
+      zoomPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const pts = Array.from(zoomPointersRef.current.values());
+      const g = zoomGestureRef.current;
+
+      if (pts.length === 2) {
+        const [a, b] = pts;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy) || 1;
+
+        const nextScale = clamp(g.startScale * (dist / g.startDist), ZOOM_MIN, ZOOM_MAX);
+
+        setZoomTf((prev) => ({
+          ...prev,
+          s: nextScale,
+          x: g.startX,
+          y: g.startY,
+        }));
+        return;
+      }
+
+      if (g.mode === 'pan') {
+        setZoomTf((prev) => {
+          if (prev.s <= 1) return prev;
+          const dx = e.clientX - g.lastX;
+          const dy = e.clientY - g.lastY;
+          g.lastX = e.clientX;
+          g.lastY = e.clientY;
+          return { ...prev, x: prev.x + dx, y: prev.y + dy };
+        });
+      }
+    };
+
+    const onZoomPointerUp = (e) => {
+      e.stopPropagation();
+      zoomPointersRef.current.delete(e.pointerId);
+
+      const left = zoomPointersRef.current.size;
+      const g = zoomGestureRef.current;
+
+      if (left < 2 && g.mode === 'pinch') {
+        g.mode = left === 1 ? 'pan' : null;
+      }
+      if (left === 0) g.mode = null;
+
+      setZoomTf((prev) => {
+        if (prev.s <= 1.01) return { s: 1, x: 0, y: 0 };
+        return prev;
+      });
+    };
+
+    const onZoomDoubleClick = (e) => {
+      e.stopPropagation();
+      setZoomTf((prev) => {
+        if (prev.s > 1) return { s: 1, x: 0, y: 0 };
+        return { s: 2, x: 0, y: 0 };
+      });
+    };
+
     return createPortal(
       <div className="zoom-backdrop" onClick={closeZoom} role="dialog" aria-modal="true">
         <div className="zoom-content" onClick={(e) => e.stopPropagation()}>
@@ -543,7 +679,25 @@ function ProjectModal({ isOpen, project, onClose }) {
                 >
                   {images.map((img, i) => (
                     <div className="carousel-slide" key={i}>
-                      <img className="zoom-img" src={img?.src} alt={img?.alt ?? ''} draggable="false" />
+                      <div
+                        className={`zoom-pan ${zoomTf.s > 1 ? 'is-zoomed' : ''}`}
+                        onPointerDown={onZoomPointerDown}
+                        onPointerMove={onZoomPointerMove}
+                        onPointerUp={onZoomPointerUp}
+                        onPointerCancel={onZoomPointerUp}
+                        onDoubleClick={onZoomDoubleClick}
+                      >
+                        <img
+                          className="zoom-img"
+                          src={img?.src}
+                          alt={img?.alt ?? ''}
+                          draggable="false"
+                          style={{
+                            transform: `translate3d(${zoomTf.x}px, ${zoomTf.y}px, 0) scale(${zoomTf.s})`,
+                            transformOrigin: 'center',
+                          }}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -610,6 +764,7 @@ function ProjectModal({ isOpen, project, onClose }) {
                     </button>
                   ))}
                 </nav>
+
                 <div className="project-modal-panel is-mobile" ref={panelRef}>
                   {renderItem(activeItem)}
                 </div>
@@ -636,6 +791,7 @@ function ProjectModal({ isOpen, project, onClose }) {
                     </div>
                   ))}
                 </nav>
+
                 <div className="project-modal-panel" ref={panelRef}>
                   {renderItem(activeItem)}
                 </div>
