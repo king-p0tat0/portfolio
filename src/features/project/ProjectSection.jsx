@@ -326,14 +326,10 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
 
   const applyDragTransform = useCallback(() => {
     const track = heroTrackRef.current;
-    const v = heroViewportRef.current;
-    if (!track || !v) return;
+    if (!track) return;
 
     const st = dragRef.current;
-    const base = -st.baseIndex * st.width;
-    const x = base + st.dx;
-
-    track.style.transform = `translate3d(${x}px, 0, 0)`;
+    track.style.setProperty('--drag-x', `${st.dx}px`);
   }, []);
 
   const queueApply = useCallback(() => {
@@ -345,38 +341,45 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
     });
   }, [applyDragTransform]);
 
-  const beginDrag = useCallback((clientX, clientY, idForCapture = null, source = 'pointer') => {
-    const v = heroViewportRef.current;
-    if (!v) return false;
+  const beginDrag = useCallback(
+    (clientX, clientY, idForCapture = null, source = 'pointer') => {
+      const v = heroViewportRef.current;
+      if (!v) return false;
 
-    const st = dragRef.current;
+      const st = dragRef.current;
 
-    // ✅ 이미 드래그 중이면 다른 소스 시작은 무시
-    if (st.active) return false;
-    if (animatingRef.current) return false;
+      // ✅ 이미 드래그 중이면 다른 소스 시작은 무시
+      if (st.active) return false;
+      if (animatingRef.current) return false;
 
-    const rect = v.getBoundingClientRect();
+      const rect = v.getBoundingClientRect();
 
-    st.active = true;
-    st.source = source;
+      st.active = true;
+      st.source = source;
 
-    st.pointerId = source === 'pointer' ? idForCapture : null;
-    st.touchId   = source === 'touch' ? idForCapture : null;
+      st.pointerId = source === 'pointer' ? idForCapture : null;
+      st.touchId = source === 'touch' ? idForCapture : null;
 
-    st.startX = clientX;
-    st.startY = clientY;
-    st.dx = 0;
-    st.dy = 0;
-    st.width = rect.width || 1;
-    st.baseIndex = heroIndex;
-    st.moved = false;
-    st.lockedAxis = null;
+      st.startX = clientX;
+      st.startY = clientY;
+      st.dx = 0;
+      st.dy = 0;
+      st.width = rect.width || 1;
+      st.baseIndex = heroIndex;
+      st.moved = false;
+      st.lockedAxis = null;
 
-    setHeroTransition(false);
-    clearRaf();
-    stopAuto();
-    return true;
-  }, [heroIndex, clearRaf, stopAuto]);
+      setHeroTransition(false);
+      clearRaf();
+      stopAuto();
+
+      const track = heroTrackRef.current;
+      if (track) track.style.setProperty('--drag-x', '0px');
+
+      return true;
+    },
+    [heroIndex, clearRaf, stopAuto]
+  );
 
   const moveDrag = useCallback(
     (clientX, clientY) => {
@@ -412,7 +415,9 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
 
     st.active = false;
     st.source = null;
-    track.style.transform = '';
+
+    // ✅ 드래그 오프셋 정리
+    track.style.setProperty('--drag-x', '0px');
 
     // 탭/세로스크롤
     if (st.lockedAxis !== 'x' || !st.moved) {
@@ -433,6 +438,11 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
     if (st.dx <= -threshold) next = st.baseIndex + 1;
     else if (st.dx >= threshold) next = st.baseIndex - 1;
 
+    // ✅ 경계 클램프 (clone 범위)
+    const n = slides.length;
+    if (next < 0) next = 0;
+    if (next > n + 1) next = n + 1;
+
     setHeroTransition(true);
 
     if (next !== st.baseIndex) {
@@ -447,34 +457,43 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
     st.pointerId = null;
     st.touchId = null;
     clearRaf();
-  }, [clearRaf, scheduleAutoRestart]);
+  }, [clearRaf, scheduleAutoRestart, slides.length]);
 
-  const onHeroPointerDown = useCallback((e) => {
-    const isTouchPointer = e.pointerType === 'touch' || e.pointerType === 'pen';
-    if (!isTouchPointer && (navigator.maxTouchPoints ?? 0) === 0) return;
+  const onHeroPointerDown = useCallback(
+    (e) => {
+      const isTouchPointer = e.pointerType === 'touch' || e.pointerType === 'pen';
+      if (!isTouchPointer && (navigator.maxTouchPoints ?? 0) === 0) return;
 
-    const v = heroViewportRef.current;
-    if (!v) return;
+      const v = heroViewportRef.current;
+      if (!v) return;
 
-    const ok = beginDrag(e.clientX, e.clientY, e.pointerId, 'pointer');
-    if (!ok) return;
+      const ok = beginDrag(e.clientX, e.clientY, e.pointerId, 'pointer');
+      if (!ok) return;
 
-    v.setPointerCapture?.(e.pointerId);
-  }, [beginDrag]);
+      v.setPointerCapture?.(e.pointerId);
+    },
+    [beginDrag]
+  );
 
-  const onHeroPointerMove = useCallback((e) => {
-    const st = dragRef.current;
-    if (!st.active || st.source !== 'pointer') return;
-    if (st.pointerId == null || st.pointerId !== e.pointerId) return;
-    moveDrag(e.clientX, e.clientY);
-  }, [moveDrag]);
+  const onHeroPointerMove = useCallback(
+    (e) => {
+      const st = dragRef.current;
+      if (!st.active || st.source !== 'pointer') return;
+      if (st.pointerId == null || st.pointerId !== e.pointerId) return;
+      moveDrag(e.clientX, e.clientY);
+    },
+    [moveDrag]
+  );
 
-  const onHeroPointerUp = useCallback((e) => {
-    const st = dragRef.current;
-    if (!st.active || st.source !== 'pointer') return;
-    if (st.pointerId == null || st.pointerId !== e.pointerId) return;
-    endDrag();
-  }, [endDrag]);
+  const onHeroPointerUp = useCallback(
+    (e) => {
+      const st = dragRef.current;
+      if (!st.active || st.source !== 'pointer') return;
+      if (st.pointerId == null || st.pointerId !== e.pointerId) return;
+      endDrag();
+    },
+    [endDrag]
+  );
 
   const onHeroPointerCancel = useCallback(
     (e) => {
@@ -593,7 +612,11 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
           <div
             className={`hero-track ${heroTransition ? 'is-animating' : ''}`}
             ref={heroTrackRef}
-            style={{ transform: `translate3d(${-heroIndex * 100}%, 0, 0)` }}
+            style={{
+              '--hero-i': heroIndex,
+              // ✅ 여기서 drag-x를 0으로 덮어쓰지 않기 (리렌더 시 끊김 방지)
+              // '--drag-x': '0px',
+            }}
             onTransitionEnd={onHeroTransitionEnd}
           >
             {heroSlides.map((s, i) => (

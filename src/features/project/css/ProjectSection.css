@@ -375,10 +375,18 @@
   height: 100%;
   display: flex;
   will-change: transform;
+
+  --drag-x: 0px;
+
+  transform: translate3d(calc(var(--hero-i, 1) * -100% + var(--drag-x, 0px)), 0, 0);
 }
 
 .hero-track.is-animating {
   transition: transform 420ms cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.hero-track:not(.is-animating) {
+  transition: none !important;
 }
 
 .hero-slide {
