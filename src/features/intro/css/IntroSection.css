@@ -227,12 +227,10 @@ body {
     line-height: 1.35;
 
     margin-bottom: 10px !important;
-
-    color: #1D2B48;
   }
 
   .main-text-group {
-    transform: translateY(-6%);
+    transform: translateY(-7%);
   }
 
   .main-subtitle {
