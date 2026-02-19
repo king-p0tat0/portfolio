@@ -524,7 +524,7 @@
   .section-title {
     width: auto;
     max-width: none;
-    margin: 20px var(--px) 12px;
+    margin: 24px var(--px) 12px;
     font-size: 1.2rem;
   }
 
@@ -562,8 +562,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 10px;
-    padding: 5px var(--px) 0;
+    margin-top: 8px;
+    padding: 4px var(--px) 0;
 
     font-size: 0.82rem;
     letter-spacing: 0.08em;

@@ -264,7 +264,7 @@ function ProjectModal({ isOpen, project, onClose }) {
         zoomEl.removeEventListener('touchcancel', onZEnd);
       }
     };
-  }, [isMobile, isOpen, galleryIndex, zoom, snapGalleryTo, snapZoomTo]);
+  }, [isMobile, isOpen, activeItemKey, galleryIndex, zoom, snapGalleryTo, snapZoomTo]);
 
   // ✅ zoom state 바뀔 때 track 위치 동기화
   useEffect(() => {
