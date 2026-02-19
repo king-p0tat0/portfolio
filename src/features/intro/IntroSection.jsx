@@ -68,20 +68,22 @@ const IntroSection = () => {
               <span className="typing-cursor" aria-hidden="true">|</span>
             </span>
           </h1>
-          <h2 className={`main-subtitle ${showSubtitle ? 'subtitle-visible' : ''}`} id="subtitle">
-            {isMobile ? (
-              <>사용자의 마음까지 설계하는<br/>Empathetic Developer</>
-            ) : (
-              '사용자의 마음까지 설계하는 Empathetic Developer'
-            )}
-          </h2>
-          <p className={`main-description ${showDescription ? 'description-visible' : ''}`} id="description">
-            {isMobile ? (
-              <>안녕하세요, 신입 개발자 정서윤입니다<span className="accent-dot"></span></>
-            ) : (
-              <>안녕하세요, 신입 개발자 정서윤입니다<span className="accent-dot"></span></>
-            )}
-          </p>
+          <div className="main-text-group">
+              <h2 className={`main-subtitle ${showSubtitle ? 'subtitle-visible' : ''}`} id="subtitle">
+                {isMobile ? (
+                  <>사용자의 마음까지 설계하는<br/>Empathetic Developer</>
+                ) : (
+                  '사용자의 마음까지 설계하는 Empathetic Developer'
+                )}
+              </h2>
+              <p className={`main-description ${showDescription ? 'description-visible' : ''}`} id="description">
+                {isMobile ? (
+                  <>안녕하세요, 신입 개발자 정서윤입니다<span className="accent-dot"></span></>
+                ) : (
+                  <>안녕하세요, 신입 개발자 정서윤입니다<span className="accent-dot"></span></>
+                )}
+              </p>
+          </div>
         </div>
 
         <div className={`scroll-down ${showScrollDown ? 'show' : ''}`}>

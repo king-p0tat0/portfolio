@@ -216,7 +216,7 @@ body {
 /* 태블릿 이하 */
 @media (max-width: 768px) {
   .main-content {
-    top: 45.5% !important;
+    top: 46% !important;
     width: 90vw;
   }
 
@@ -227,6 +227,12 @@ body {
     line-height: 1.35;
 
     margin-bottom: 10px !important;
+
+    color: #1D2B48;
+  }
+
+  .main-text-group {
+    transform: translateY(-6%);
   }
 
   .main-subtitle {
