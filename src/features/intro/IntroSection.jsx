@@ -77,7 +77,7 @@ const IntroSection = () => {
           </h2>
           <p className={`main-description ${showDescription ? 'description-visible' : ''}`} id="description">
             {isMobile ? (
-              <>안녕하세요,<br/>신입 개발자 정서윤입니다<span className="accent-dot"></span></>
+              <>안녕하세요, 신입 개발자 정서윤입니다<span className="accent-dot"></span></>
             ) : (
               <>안녕하세요, 신입 개발자 정서윤입니다<span className="accent-dot"></span></>
             )}

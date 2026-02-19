@@ -216,17 +216,17 @@ body {
 /* 태블릿 이하 */
 @media (max-width: 768px) {
   .main-content {
-    top: 47% !important;
+    top: 45.5% !important;
     width: 90vw;
   }
 
   .main-title {
-    font-size: clamp(2.2rem, 6vw, 3rem);
+    font-size: clamp(2rem, 6vw, 4rem) !important;
     white-space: pre-line;
     transform: none;
     line-height: 1.35;
 
-    margin-bottom: 0 !important;
+    margin-bottom: 10px !important;
   }
 
   .main-subtitle {
