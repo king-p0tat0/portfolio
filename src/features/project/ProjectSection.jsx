@@ -224,18 +224,21 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
   // Observers / hints
   // ----------------------------
   useEffect(() => {
-    const observer = new IntersectionObserver(
+    const el = sectionRef.current;
+    if (!el) return;
+
+    const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
+        document.body.classList.toggle('is-dark', entry.isIntersecting);
       },
       { threshold: 0.2 }
     );
 
-    if (sectionRef.current) observer.observe(sectionRef.current);
-    return () => observer.disconnect();
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      document.body.classList.remove('is-dark');
+    };
   }, []);
 
   useEffect(() => {
