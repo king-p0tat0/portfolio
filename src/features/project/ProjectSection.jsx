@@ -122,7 +122,7 @@ const ProjectSection = ({ setIsModalOpen, isModalOpen }) => {
         subtitle: 'React Web Portfolio',
         image: PoMain,
         description: 'React를 기반으로 개발한 인터랙티브 웹 포트폴리오로, 직접 개발한 프로젝트를 담았습니다.',
-        year: '2025',
+        year: '2026',
         type: '개인 프로젝트',
       },
     ],
